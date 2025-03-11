@@ -48,8 +48,8 @@
       let startButton = document.getElementById('startButton');
       let pauseButton = document.getElementById('pauseButton');
 
-      // 每個格子的大小，可依需要調整
-      let cellSize = 10;
+      // 將螞蟻與軌跡縮小為原本的一半
+      let cellSize = 5;  // 由原本的 10 改為 5
 
       // cols、rows 代表網格的總行數與列數
       let cols, rows;
@@ -212,6 +212,7 @@
 
       // ========== 暫停 / 繼續 切換 ==========
 
+      let paused = false;
       function togglePause() {
         paused = !paused;
         // 切換按鈕文字
