@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Langton's Ant</title>
+    <!-- 以下 CSS 區塊用來設定頁面及 canvas 的基本版面與樣式 -->
+    <style>
+      /* 將頁面內容置中 */
+      body { text-align: center; }
+      /* 給 canvas 加上邊框，並置中顯示 */
+      canvas { border: 1px solid #000; display: block; margin: 0 auto; }
+    </style>
+  </head>
+  <body>
+    <!-- 頁面標題 -->
+    <h1>Langton's Ant</h1>
+    <!-- 建立一個開始按鈕，點擊後將啟動模擬 -->
+    <button id="startButton">開始</button>
+    <!-- canvas 元素用來繪製模擬內容，初始設定為隱藏 -->
+    <canvas id="canvas" width="600" height="600" style="display:none;"></canvas>
+    <!-- 以下 JavaScript 區塊負責處理蘭頓螞蟻的模擬邏輯 -->
+    <script>
+      // 取得 canvas 元素及其 2D 繪圖環境
+      let canvas = document.getElementById('canvas');
+      let ctx = canvas.getContext('2d');
+      // 取得開始按鈕元素
+      let startButton = document.getElementById('startButton');
+
+      // 設定格子大小，這裡每個格子為 10x10 像素
+      const cellSize = 10;
+      // 計算 canvas 上的行數與列數（寬/高 除以每格大小）
+      const cols = canvas.width / cellSize;
+      const rows = canvas.height / cellSize;
+
+      // 建立二維陣列 grid 來儲存每個格子的狀態：0 代表白色，1 代表黑色
+      let grid = [];
+      for (let i = 0; i < cols; i++) {
+        grid[i] = [];
+        for (let j = 0; j < rows; j++) {
+          grid[i][j] = 0;  // 初始所有格子皆為白色
+        }
+      }
+
+      // 定義蘭頓螞蟻的屬性：位置（x,y）與朝向（dir）
+      // 方向定義：0 表示上、1 表示右、2 表示下、3 表示左
+      let ant = {
+        x: Math.floor(cols / 2),  // 將螞蟻放在網格中間 (x 軸)
+        y: Math.floor(rows / 2),  // 將螞蟻放在網格中間 (y 軸)
+        dir: 0                    // 初始朝向設定為上方
+      };
+
+      // 定義模擬更新函式，每次呼叫將進行一次模擬步驟
+      function update() {
+        // 取得目前螞蟻所在格子的顏色狀態
+        let currentColor = grid[ant.x][ant.y];
+        // 根據當前顏色決定轉向：白格轉右（+1）、黑格轉左（+3，等同於 -1）
+        if (currentColor === 0) {
+          ant.dir = (ant.dir + 1) % 4;
+        } else {
+          ant.dir = (ant.dir + 3) % 4;
+        }
+        // 反轉目前格子的顏色（0 變 1、1 變 0）
+        grid[ant.x][ant.y] = 1 - currentColor;
+        // 更新該格的畫面顯示
+        drawCell(ant.x, ant.y);
+
+        // 根據目前的方向移動螞蟻一格
+        if (ant.dir === 0) {
+          ant.y -= 1;  // 向上移動
+        } else if (ant.dir === 1) {
+          ant.x += 1;  // 向右移動
+        } else if (ant.dir === 2) {
+          ant.y += 1;  // 向下移動
+        } else if (ant.dir === 3) {
+          ant.x -= 1;  // 向左移動
+        }
+
+        // 為避免超出 canvas 範圍，採用環繞式（超出邊界時從對面出現）
+        ant.x = (ant.x + cols) % cols;
+        ant.y = (ant.y + rows) % rows;
+      }
+
+      // 定義函式用來根據格子狀態繪製單一格
+      function drawCell(i, j) {
+        // 根據狀態決定填滿顏色，1 為黑色，0 為白色
+        ctx.fillStyle = grid[i][j] === 1 ? '#000' : '#FFF';
+        // 在 canvas 上對應位置繪製一個正方形
+        ctx.fillRect(i * cellSize, j * cellSize, cellSize, cellSize);
+      }
+
+      // 初始繪製整個網格的函式（方便初始化時全部渲染）
+      function drawGrid() {
+        for (let i = 0; i < cols; i++) {
+          for (let j = 0; j < rows; j++) {
+            drawCell(i, j);
+          }
+        }
+      }
+
+      // 宣告一個變數來存放模擬的計時器 ID（方便後續若需停止模擬）
+      let simulationInterval;
+      // 定義開始模擬的函式
+      function startSimulation() {
+        // 隱藏開始按鈕（避免重複點擊）
+        startButton.style.display = 'none';
+        // 顯示 canvas 元素
+        canvas.style.display = 'block';
+        // 初始化畫面，將整個網格繪製出來
+        drawGrid();
+        // 使用 setInterval 每隔 50 毫秒進行模擬更新
+        simulationInterval = setInterval(function(){
+          // 為了加速模擬，每次更新呼叫多次 update（此處設定為 10 次）
+          for (let i = 0; i < 10; i++) {
+            update();
+          }
+        }, 50);
+      }
+
+      // 綁定開始按鈕的點擊事件，觸發模擬啟動
+      startButton.addEventListener('click', startSimulation);
+    </script>
+  </body>
+</html>
