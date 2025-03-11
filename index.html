@@ -2,30 +2,41 @@
 <html>
   <head>
     <meta charset="utf-8">
-    <title>Langton's Ant - Responsive & Bounce</title>
+    <title>Langton's Ant - Fullscreen & Bounce with Transparency</title>
     <style>
-      /* 將整個頁面置中，並移除預設邊距 */
+      /* 讓整個頁面背景為純黑、並將內容置中 */
       html, body {
         margin: 0;
         padding: 0;
-        text-align: center;
-        height: 100%;
         width: 100%;
+        height: 100%;
+        background-color: #000; /* 黑色底 */
+        color: #fff;            /* 白色文字，方便在黑底上閱讀 */
+        text-align: center;
       }
-      /* 讓 canvas 置中顯示，並預設有黑色邊框 */
+      /* 讓 canvas 置中顯示，並有白色邊框 */
       canvas {
-        border: 1px solid #000;
+        border: 1px solid #fff;
         display: block;
         margin: 0 auto;
+      }
+      /* 讓按鈕略微分行排列，保持整齊 */
+      button {
+        margin: 0.5rem;
+        padding: 0.5rem 1rem;
+        font-size: 1rem;
       }
     </style>
   </head>
   <body>
     <h1>Langton's Ant</h1>
+    <!-- 開始、暫停按鈕（暫停按鈕在一開始先隱藏） -->
     <button id="startButton">開始</button>
+    <button id="pauseButton" style="display:none;">暫停</button>
+
     <!-- 
-      canvas 不指定固定 width、height，
-      改用 JavaScript 動態設定大小，以符合 99% 全螢幕需求
+      canvas 不指定預設寬高，改由 JavaScript 動態設定，
+      以達到「填滿螢幕 99%」的效果
     -->
     <canvas id="canvas" style="display:none;"></canvas>
 
@@ -35,14 +46,16 @@
       let canvas = document.getElementById('canvas');
       let ctx = canvas.getContext('2d');
       let startButton = document.getElementById('startButton');
+      let pauseButton = document.getElementById('pauseButton');
 
       // 每個格子的大小，可依需要調整
       let cellSize = 10;
 
-      // cols、rows 代表網格的總行數與列數，後續在初始化時動態計算
+      // cols、rows 代表網格的總行數與列數
       let cols, rows;
 
-      // 用來存放網格狀態：0 = 白色、1 = 黑色（用於轉向判斷），實際顯示會依時間漸變色
+      // 用來存放網格狀態：0 = 白色邏輯、1 = 黑色邏輯
+      // （畫面實際顯示時會使用時間漸變色 + 透明度）
       let grid = [];
 
       // 螞蟻屬性：位置 (x, y) 與方向 dir（0=上、1=右、2=下、3=左）
@@ -50,9 +63,10 @@
 
       // 模擬的計時器 ID
       let simulationInterval;
-
-      // 記錄開始時間，用於計算色彩漸變
+      // 紀錄開始時間（用於漸變色計算）
       let startTime;
+      // 控制是否暫停
+      let paused = false;
 
       // ========== 響應式初始化 ==========
 
@@ -80,7 +94,7 @@
         ant.dir = 0;
       }
 
-      // ========== 取得當前時間對應的漸變色 ==========
+      // ========== 漸變色計算（含透明度） ==========
 
       function getColorForTime() {
         // 計算從開始到現在經過的秒數
@@ -90,18 +104,18 @@
         let fraction = (elapsedSec % 60) / 60;
         // 將 fraction 對應到 0~360 的色相（Hue）
         let hue = fraction * 360;
-        // 使用 HSL 讓色相隨時間循環，飽和度 100%、亮度 50%
-        return `hsl(${hue}, 100%, 50%)`;
+        // 使用 HSLA，alpha 設定為 0.5（半透明）
+        return `hsla(${hue}, 100%, 50%, 0.5)`;
       }
 
       // ========== 根據 grid 狀態繪製單一格子 ==========
 
       function drawCell(i, j) {
-        // 若 grid[i][j] = 1，則使用時間漸變色；否則為白色
+        // 若 grid[i][j] = 1，則使用「漸變色 + 半透明」；否則用純黑
         if (grid[i][j] === 1) {
           ctx.fillStyle = getColorForTime();
         } else {
-          ctx.fillStyle = '#FFF';
+          ctx.fillStyle = '#000'; // 與背景同為純黑
         }
         ctx.fillRect(i * cellSize, j * cellSize, cellSize, cellSize);
       }
@@ -149,22 +163,18 @@
         // 5. 邊界檢查：若超出範圍則反彈
         if (ant.x < 0) {
           ant.x = 0;
-          // 原本方向是左(3)，反彈後變成右(1)
           if (ant.dir === 3) ant.dir = 1;
         }
         if (ant.x >= cols) {
           ant.x = cols - 1;
-          // 原本方向是右(1)，反彈後變成左(3)
           if (ant.dir === 1) ant.dir = 3;
         }
         if (ant.y < 0) {
           ant.y = 0;
-          // 原本方向是上(0)，反彈後變成下(2)
           if (ant.dir === 0) ant.dir = 2;
         }
         if (ant.y >= rows) {
           ant.y = rows - 1;
-          // 原本方向是下(2)，反彈後變成上(0)
           if (ant.dir === 2) ant.dir = 0;
         }
       }
@@ -172,8 +182,10 @@
       // ========== 開始模擬 ==========
 
       function startSimulation() {
-        // 隱藏按鈕
+        // 隱藏「開始」按鈕
         startButton.style.display = 'none';
+        // 顯示「暫停」按鈕
+        pauseButton.style.display = 'inline-block';
         // 顯示 canvas
         canvas.style.display = 'block';
 
@@ -186,16 +198,30 @@
         // 紀錄開始時間，用於色彩漸變
         startTime = Date.now();
 
-        // 每隔 50 毫秒執行多次更新，加快模擬
+        // 啟動計時器：每隔 50 毫秒更新
         simulationInterval = setInterval(() => {
-          for (let i = 0; i < 10; i++) {
-            update();
+          // 若非暫停狀態才更新
+          if (!paused) {
+            // 為了加速，每次更新執行多次
+            for (let i = 0; i < 10; i++) {
+              update();
+            }
           }
         }, 50);
       }
 
-      // 綁定開始按鈕事件
+      // ========== 暫停 / 繼續 切換 ==========
+
+      function togglePause() {
+        paused = !paused;
+        // 切換按鈕文字
+        pauseButton.textContent = paused ? '繼續' : '暫停';
+      }
+
+      // 綁定「開始」按鈕事件
       startButton.addEventListener('click', startSimulation);
+      // 綁定「暫停」按鈕事件
+      pauseButton.addEventListener('click', togglePause);
     </script>
   </body>
 </html>
