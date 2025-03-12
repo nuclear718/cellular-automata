@@ -94,7 +94,7 @@
         for (let i = 0; i < cols; i++) {
           grid[i] = [];
           for (let j = 0; j < rows; j++) {
-            grid[i][j] = { state: 0, flipTime: null, antIndex: null };
+            grid[i][j] = { state: 0, color: null, antIndex: null };
           }
         }
 
@@ -133,9 +133,7 @@
           ctx.fillRect(i * cellSize, j * cellSize, cellSize, cellSize);
         } else {
           let ant = ants[cell.antIndex];
-          let timeDiff = tick - cell.flipTime;
-          let hue = ((timeDiff % 60) / 60 * 360 + ant.hueOffset) % 360;
-          let color = `hsl(${hue}, 100%, 50%)`;
+          let color = cell.color;
           ctx.fillStyle = color;
           ctx.strokeStyle = color;
           let x = i * cellSize;
@@ -276,12 +274,15 @@
           }
           // 翻轉格子
           if (currentState === 0) {
+            // 計算並固定顏色
+            let hue = (tick % 60 / 60 * 360 + ant.hueOffset) % 360;
+            let color = `hsl(${hue}, 100%, 50%)`;
             grid[ant.x][ant.y].state = 1;
-            grid[ant.x][ant.y].flipTime = tick;
+            grid[ant.x][ant.y].color = color;
             grid[ant.x][ant.y].antIndex = index;
           } else {
             grid[ant.x][ant.y].state = 0;
-            grid[ant.x][ant.y].flipTime = null;
+            grid[ant.x][ant.y].color = null;
             grid[ant.x][ant.y].antIndex = null;
           }
           drawCell(ant.x, ant.y);
@@ -332,7 +333,6 @@
             for (let i = 0; i < 10; i++) {
               update();
             }
-            drawGrid();
             drawAllDecorations();
           }
         }, 50);
