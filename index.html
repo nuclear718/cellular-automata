@@ -134,10 +134,23 @@
         } else {
           let ant = ants[cell.antIndex];
           let color = cell.color;
-          ctx.fillStyle = color;
-          ctx.strokeStyle = color;
           let x = i * cellSize;
           let y = j * cellSize;
+          
+          // 繪製光暈
+          ctx.save();
+          ctx.globalAlpha = 0.2;
+          let glowRadius = cellSize * 1.5;
+          let gradient = ctx.createRadialGradient(x + cellSize / 2, y + cellSize / 2, 0, x + cellSize / 2, y + cellSize / 2, glowRadius);
+          gradient.addColorStop(0, color);
+          gradient.addColorStop(1, 'transparent');
+          ctx.fillStyle = gradient;
+          ctx.fillRect(x - glowRadius + cellSize / 2, y - glowRadius + cellSize / 2, glowRadius * 2, glowRadius * 2);
+          ctx.restore();
+          
+          // 繪製軌跡
+          ctx.fillStyle = color;
+          ctx.strokeStyle = color;
           switch (ant.trackStyle) {
             case 'filled_rect':
               ctx.fillRect(x, y, cellSize, cellSize);
@@ -275,7 +288,7 @@
           // 翻轉格子
           if (currentState === 0) {
             // 計算並固定顏色
-            let hue = (tick % 60 / 60 * 360 + ant.hueOffset) % 360;
+            let hue = (tick % 2400 / 2400 * 360 + ant.hueOffset) % 360;
             let color = `hsl(${hue}, 100%, 50%)`;
             grid[ant.x][ant.y].state = 1;
             grid[ant.x][ant.y].color = color;

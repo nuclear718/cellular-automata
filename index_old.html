@@ -70,16 +70,14 @@
       let cellSize = 5;
       // cols、rows 為網格的總行數與列數
       let cols, rows;
-      // grid 用來存放每格的狀態（0 = 白色邏輯、1 = 黑色邏輯）
+      // grid 用來存放每格的狀態
       let grid = [];
-      // 螞蟻陣列：每隻螞蟻除了位置、方向與隨機步數外，
-      // 還有獨立的軌跡顏色與獨立的裝飾圈屬性：
-      // decorationStyle、decorationDiameter 與 decorationColor
+      // 螞蟻陣列
       let ants = [];
       // 模擬計時器 ID
       let simulationInterval;
-      // 記錄開始時間（用於色彩漸變）
-      let startTime;
+      // tick 計數器，用於追踪模擬步數
+      let tick = 0;
       // 控制是否暫停
       let paused = false;
 
@@ -96,7 +94,7 @@
         for (let i = 0; i < cols; i++) {
           grid[i] = [];
           for (let j = 0; j < rows; j++) {
-            grid[i][j] = 0;
+            grid[i][j] = { state: 0, color: null, antIndex: null };
           }
         }
 
@@ -106,44 +104,92 @@
           antCount = 1;
         }
         ants = [];
-        // 裝飾圈風格選項
+        const trackStyles = ['filled_rect', 'hollow_rect', 'filled_circle', 'hollow_circle', 'filled_diamond', 'hollow_diamond', 'glow'];
         const decorationStyles = ["solid", "dashed", "double", "dotted"];
         for (let i = 0; i < antCount; i++) {
           let newAnt = {
             x: Math.floor(Math.random() * cols),
             y: Math.floor(Math.random() * rows),
             dir: Math.floor(Math.random() * 4),
-            randomStepsRemaining: 10,  // 前 10 步採用隨機方向
-            // 螞蟻的軌跡顏色（不直接用於裝飾圈）
-            color: `hsl(${Math.floor(Math.random() * 360)}, 100%, 50%)`,
-            // 隨機挑選一種裝飾圈風格
+            randomStepsRemaining: 10,
+            // 隨機色相偏移量，用於軌跡顏色
+            hueOffset: Math.floor(Math.random() * 360),
+            // 隨機軌跡樣式
+            trackStyle: trackStyles[Math.floor(Math.random() * trackStyles.length)],
+            // 裝飾圈屬性
             decorationStyle: decorationStyles[Math.floor(Math.random() * decorationStyles.length)],
-            // 裝飾圈直徑為軌跡寬度的2到3倍（約 10~15 pixel）
             decorationDiameter: Math.floor((2 + Math.random()) * cellSize),
-            // 裝飾圈獨立顏色，採用鮮豔飽和的色彩 (100% 飽和、50% 亮度)
             decorationColor: `hsl(${Math.floor(Math.random() * 360)}, 100%, 50%)`
           };
           ants.push(newAnt);
         }
       }
 
-      // ========== 漸變色計算（含透明度） ==========
-      function getColorForTime() {
-        let now = Date.now();
-        let elapsedSec = (now - startTime) / 1000;
-        let fraction = (elapsedSec % 60) / 60;
-        let hue = fraction * 360;
-        return `hsla(${hue}, 100%, 50%, 0.5)`;
-      }
-
-      // ========== 根據 grid 狀態繪製單一格子 ==========
+      // ========== 繪製單一格子 ==========
       function drawCell(i, j) {
-        if (grid[i][j] === 1) {
-          ctx.fillStyle = getColorForTime();
-        } else {
+        let cell = grid[i][j];
+        if (cell.state === 0) {
           ctx.fillStyle = '#000';
+          ctx.fillRect(i * cellSize, j * cellSize, cellSize, cellSize);
+        } else {
+          let ant = ants[cell.antIndex];
+          let color = cell.color;
+          ctx.fillStyle = color;
+          ctx.strokeStyle = color;
+          let x = i * cellSize;
+          let y = j * cellSize;
+          switch (ant.trackStyle) {
+            case 'filled_rect':
+              ctx.fillRect(x, y, cellSize, cellSize);
+              break;
+            case 'hollow_rect':
+              ctx.lineWidth = 1;
+              ctx.beginPath();
+              ctx.rect(x, y, cellSize, cellSize);
+              ctx.stroke();
+              break;
+            case 'filled_circle':
+              ctx.beginPath();
+              ctx.arc(x + cellSize / 2, y + cellSize / 2, cellSize / 2, 0, 2 * Math.PI);
+              ctx.fill();
+              break;
+            case 'hollow_circle':
+              ctx.lineWidth = 1;
+              ctx.beginPath();
+              ctx.arc(x + cellSize / 2, y + cellSize / 2, cellSize / 2, 0, 2 * Math.PI);
+              ctx.stroke();
+              break;
+            case 'filled_diamond':
+              ctx.beginPath();
+              ctx.moveTo(x + cellSize / 2, y);
+              ctx.lineTo(x + cellSize, y + cellSize / 2);
+              ctx.lineTo(x + cellSize / 2, y + cellSize);
+              ctx.lineTo(x, y + cellSize / 2);
+              ctx.closePath();
+              ctx.fill();
+              break;
+            case 'hollow_diamond':
+              ctx.lineWidth = 1;
+              ctx.beginPath();
+              ctx.moveTo(x + cellSize / 2, y);
+              ctx.lineTo(x + cellSize, y + cellSize / 2);
+              ctx.lineTo(x + cellSize / 2, y + cellSize);
+              ctx.lineTo(x, y + cellSize / 2);
+              ctx.closePath();
+              ctx.stroke();
+              break;
+            case 'glow':
+              let gradient = ctx.createRadialGradient(x + cellSize / 2, y + cellSize / 2, 0, x + cellSize / 2, y + cellSize / 2, cellSize / 2);
+              gradient.addColorStop(0, color);
+              gradient.addColorStop(1, 'transparent');
+              ctx.fillStyle = gradient;
+              ctx.fillRect(x, y, cellSize, cellSize);
+              break;
+            default:
+              ctx.fillRect(x, y, cellSize, cellSize);
+              break;
+          }
         }
-        ctx.fillRect(i * cellSize, j * cellSize, cellSize, cellSize);
       }
 
       // ========== 繪製整個網格 ==========
@@ -156,13 +202,12 @@
       }
 
       // ========== 繪製單一螞蟻的裝飾圈 ==========
-      // 此函式使用傳入的 context 繪製螞蟻的「光環」
       function drawDecoration(context, ant) {
         let cx = ant.x * cellSize + cellSize / 2;
         let cy = ant.y * cellSize + cellSize / 2;
         let radius = ant.decorationDiameter / 2;
         context.strokeStyle = ant.decorationColor;
-        switch(ant.decorationStyle) {
+        switch (ant.decorationStyle) {
           case "solid":
             context.lineWidth = 2;
             context.setLineDash([]);
@@ -205,7 +250,6 @@
       }
 
       // ========== 繪製所有螞蟻的裝飾圈 ==========
-      // 每個 simulation tick 結束前，先清空裝飾 canvas，再根據目前各螞蟻位置繪製光環
       function drawAllDecorations() {
         dctx.clearRect(0, 0, decorationCanvas.width, decorationCanvas.height);
         ants.forEach(ant => {
@@ -215,27 +259,34 @@
 
       // ========== 模擬邏輯：更新所有螞蟻狀態 ==========
       function update() {
-        ants.forEach(ant => {
-          let currentColor = grid[ant.x][ant.y];
-          // 前 10 步或額外隨機步數：採用隨機方向
+        ants.forEach((ant, index) => {
+          let currentCell = grid[ant.x][ant.y];
+          let currentState = currentCell.state;
           if (ant.randomStepsRemaining > 0) {
             ant.dir = Math.floor(Math.random() * 4);
             ant.randomStepsRemaining--;
           } else {
-            // 根據格子顏色決定轉向（白格右轉、黑格左轉）
-            if (currentColor === 0) {
+            if (currentState === 0) {
               ant.dir = (ant.dir + 1) % 4;
             } else {
               ant.dir = (ant.dir + 3) % 4;
             }
           }
-  
-          // 翻轉當前格子的狀態（0 ↔ 1）
-          grid[ant.x][ant.y] = 1 - currentColor;
-          // 重新繪製該格
+          // 翻轉格子
+          if (currentState === 0) {
+            // 計算並固定顏色
+            let hue = (tick % 60 / 60 * 360 + ant.hueOffset) % 360;
+            let color = `hsl(${hue}, 100%, 50%)`;
+            grid[ant.x][ant.y].state = 1;
+            grid[ant.x][ant.y].color = color;
+            grid[ant.x][ant.y].antIndex = index;
+          } else {
+            grid[ant.x][ant.y].state = 0;
+            grid[ant.x][ant.y].color = null;
+            grid[ant.x][ant.y].antIndex = null;
+          }
           drawCell(ant.x, ant.y);
-  
-          // 根據方向移動一格
+          // 移動螞蟻
           if (ant.dir === 0) {
             ant.y -= 1;
           } else if (ant.dir === 1) {
@@ -245,8 +296,7 @@
           } else if (ant.dir === 3) {
             ant.x -= 1;
           }
-  
-          // 邊界檢查：若超出範圍則修正位置，並增加 5 步隨機步數
+          // 邊界檢查
           if (ant.x < 0) {
             ant.x = 0;
             ant.randomStepsRemaining += 5;
@@ -265,22 +315,21 @@
           }
         });
       }
-  
+
       // ========== 開始模擬 ==========
       function startSimulation() {
-        // 隱藏開始按鈕與輸入欄位，顯示暫停按鈕與 canvas 容器
         startButton.style.display = 'none';
         antCountInput.style.display = 'none';
         pauseButton.style.display = 'inline-block';
         canvasContainer.style.display = 'inline-block';
-  
+
         initCanvas();
         drawGrid();
-        startTime = Date.now();
-  
+        tick = 0;
+
         simulationInterval = setInterval(() => {
           if (!paused) {
-            // 每個 tick 中執行多次更新，再統一重繪裝飾圈
+            tick++;
             for (let i = 0; i < 10; i++) {
               update();
             }
@@ -288,13 +337,13 @@
           }
         }, 50);
       }
-  
+
       // ========== 暫停 / 繼續 ==========
       function togglePause() {
         paused = !paused;
         pauseButton.textContent = paused ? '繼續' : '暫停';
       }
-  
+
       startButton.addEventListener('click', startSimulation);
       pauseButton.addEventListener('click', togglePause);
     </script>
