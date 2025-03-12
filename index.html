@@ -59,7 +59,8 @@
       // （畫面實際顯示時會使用時間漸變色 + 透明度）
       let grid = [];
 
-      // 螞蟻陣列，每一隻螞蟻具有位置 (x, y)、方向 dir（0=上、1=右、2=下、3=左），以及 randomStepsRemaining（前 10 步隨機）
+      // 螞蟻陣列，每一隻螞蟻具有位置 (x, y)、方向 dir（0=上、1=右、2=下、3=左）、以及 randomStepsRemaining（前 10 步隨機）
+      // 現在每隻螞蟻也多了 style 與 color 屬性，用以區分外觀風格與顏色
       let ants = [];
 
       // 模擬的計時器 ID
@@ -88,18 +89,22 @@
           }
         }
 
-        // 根據使用者輸入的數量建立多隻螞蟻，每隻螞蟻初始位置、初始方向均隨機，並設定前 10 步採用隨機方向
+        // 根據使用者輸入的數量建立多隻螞蟻，每隻螞蟻初始位置、初始方向均隨機，
+        // 並設定前 10 步採用隨機方向，同時加入隨機外觀風格與顏色
         let antCount = parseInt(antCountInput.value);
         if (isNaN(antCount) || antCount < 1) {
           antCount = 1;
         }
         ants = [];
+        const antStyles = ["oneCircle", "twoCircles", "dashedCircle", "thickCircle"];
         for (let i = 0; i < antCount; i++) {
           let newAnt = {
             x: Math.floor(Math.random() * cols),
             y: Math.floor(Math.random() * rows),
             dir: Math.floor(Math.random() * 4),
-            randomStepsRemaining: 10  // 前 10 步使用隨機方向
+            randomStepsRemaining: 10,  // 前 10 步使用隨機方向
+            style: antStyles[Math.floor(Math.random() * antStyles.length)],
+            color: `hsl(${Math.floor(Math.random() * 360)}, 100%, 50%)`
           };
           ants.push(newAnt);
         }
@@ -138,17 +143,62 @@
         }
       }
 
+      // ========== 繪製螞蟻 ==========
+      // 根據每隻螞蟻的 style 與 color，在其所在的網格中心繪製不同風格的圓圈
+      function drawAnt(ant) {
+        // 計算 cell 中心點座標
+        let cx = ant.x * cellSize + cellSize / 2;
+        let cy = ant.y * cellSize + cellSize / 2;
+        ctx.strokeStyle = ant.color;
+        switch(ant.style) {
+          case "oneCircle":
+            ctx.lineWidth = 1;
+            ctx.setLineDash([]); // 實線
+            ctx.beginPath();
+            ctx.arc(cx, cy, cellSize/2 - 1, 0, 2 * Math.PI);
+            ctx.stroke();
+            break;
+          case "twoCircles":
+            ctx.lineWidth = 1;
+            ctx.setLineDash([]);
+            // 第一個圓圈
+            ctx.beginPath();
+            ctx.arc(cx, cy, cellSize/2 - 1, 0, 2 * Math.PI);
+            ctx.stroke();
+            // 第二個圓圈，外圍稍大
+            ctx.beginPath();
+            ctx.arc(cx, cy, cellSize/2 - 1 + 2, 0, 2 * Math.PI);
+            ctx.stroke();
+            break;
+          case "dashedCircle":
+            ctx.lineWidth = 1;
+            ctx.setLineDash([3, 3]); // 虛線設定
+            ctx.beginPath();
+            ctx.arc(cx, cy, cellSize/2 - 1, 0, 2 * Math.PI);
+            ctx.stroke();
+            ctx.setLineDash([]); // 重設為實線
+            break;
+          case "thickCircle":
+            ctx.lineWidth = 3; // 粗線圈
+            ctx.setLineDash([]);
+            ctx.beginPath();
+            ctx.arc(cx, cy, cellSize/2 - 1, 0, 2 * Math.PI);
+            ctx.stroke();
+            break;
+        }
+      }
+
       // ========== 模擬邏輯：更新所有螞蟻狀態 ==========
       function update() {
         // 對每隻螞蟻進行更新
         ants.forEach(ant => {
           let currentColor = grid[ant.x][ant.y];
-          // 若該隻螞蟻仍處於前 10 步隨機模式，則採用隨機方向
+          // 前 10 步或額外隨機步伐：採用隨機方向
           if (ant.randomStepsRemaining > 0) {
             ant.dir = Math.floor(Math.random() * 4);
             ant.randomStepsRemaining--;
           } else {
-            // 否則依照原本規則進行轉向：白格右轉、黑格左轉
+            // 白格右轉、黑格左轉
             if (currentColor === 0) {
               ant.dir = (ant.dir + 1) % 4;
             } else {
@@ -173,32 +223,34 @@
             ant.x -= 1; // 向左
           }
   
-          // 邊界檢查：若超出範圍則修正位置，並增加5步隨機步伐
+          // 邊界檢查：若超出範圍則修正位置，並增加 5 步隨機步伐
           if (ant.x < 0) {
             ant.x = 0;
-            ant.randomStepsRemaining += 5;  // 遭遇左邊界：增加隨機步數
+            ant.randomStepsRemaining += 5;
           }
           if (ant.x >= cols) {
             ant.x = cols - 1;
-            ant.randomStepsRemaining += 5;  // 遭遇右邊界：增加隨機步數
+            ant.randomStepsRemaining += 5;
           }
           if (ant.y < 0) {
             ant.y = 0;
-            ant.randomStepsRemaining += 5;  // 遭遇上邊界：增加隨機步數
+            ant.randomStepsRemaining += 5;
           }
           if (ant.y >= rows) {
             ant.y = rows - 1;
-            ant.randomStepsRemaining += 5;  // 遭遇下邊界：增加隨機步數
+            ant.randomStepsRemaining += 5;
           }
+  
+          // 在螞蟻新位置上依照個人風格繪製外觀
+          drawAnt(ant);
         });
       }
 
       // ========== 開始模擬 ==========
       function startSimulation() {
-        // 隱藏「開始」按鈕與數字輸入欄位
+        // 隱藏「開始」按鈕與數字輸入欄位，顯示「暫停」按鈕與 canvas
         startButton.style.display = 'none';
         antCountInput.style.display = 'none';
-        // 顯示「暫停」按鈕與 canvas
         pauseButton.style.display = 'inline-block';
         canvas.style.display = 'block';
   
