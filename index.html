@@ -14,13 +14,24 @@
         color: #fff;
         text-align: center;
       }
-      /* 讓 canvas 置中顯示，並有白色邊框 */
-      canvas {
+      /* 主要容器置中，並利用 relative 定位以便疊加 canvas */
+      #canvasContainer {
+        position: relative;
+        display: inline-block;
+      }
+      /* 主 canvas 置中顯示，並有白色邊框 */
+      #canvas {
         border: 1px solid #fff;
         display: block;
-        margin: 0 auto;
       }
-      /* 讓按鈕與輸入欄位排列整齊 */
+      /* 裝飾 canvas 採用絕對定位，位於主 canvas 上方，不接收滑鼠事件 */
+      #decorationCanvas {
+        position: absolute;
+        top: 0;
+        left: 0;
+        pointer-events: none;
+      }
+      /* 按鈕與輸入欄位樣式 */
       button, input {
         margin: 0.5rem;
         padding: 0.5rem 1rem;
@@ -37,14 +48,20 @@
     <button id="startButton">開始</button>
     <input id="antCountInput" type="number" min="1" value="1">
     <button id="pauseButton" style="display:none;">暫停</button>
-
-    <!-- canvas 由 JavaScript 動態設定大小（填滿螢幕 99%） -->
-    <canvas id="canvas" style="display:none;"></canvas>
-
+    
+    <!-- 主 canvas 與裝飾 canvas 包含於同一容器內 -->
+    <div id="canvasContainer" style="display:none;">
+      <canvas id="canvas"></canvas>
+      <canvas id="decorationCanvas"></canvas>
+    </div>
+    
     <script>
       // ========== 全域變數宣告 ==========
       let canvas = document.getElementById('canvas');
       let ctx = canvas.getContext('2d');
+      let decorationCanvas = document.getElementById('decorationCanvas');
+      let dctx = decorationCanvas.getContext('2d');
+      let canvasContainer = document.getElementById('canvasContainer');
       let startButton = document.getElementById('startButton');
       let pauseButton = document.getElementById('pauseButton');
       let antCountInput = document.getElementById('antCountInput');
@@ -55,9 +72,9 @@
       let cols, rows;
       // grid 用來存放每格的狀態（0 = 白色邏輯、1 = 黑色邏輯）
       let grid = [];
-      // 螞蟻陣列：每隻螞蟻除了位置、方向與隨機步數之外，
-      // 還有獨立的 trail 色彩與獨立的裝飾圈屬性：
-      // decorationStyle、decorationDiameter 以及 decorationColor
+      // 螞蟻陣列：每隻螞蟻除了位置、方向與隨機步數外，
+      // 還有獨立的軌跡顏色與獨立的裝飾圈屬性：
+      // decorationStyle、decorationDiameter 與 decorationColor
       let ants = [];
       // 模擬計時器 ID
       let simulationInterval;
@@ -68,8 +85,11 @@
 
       // ========== 初始化 Canvas 與網格 ==========
       function initCanvas() {
+        // 設定主 canvas 尺寸，並同步 decoration canvas
         canvas.width = Math.floor(window.innerWidth * 0.99);
         canvas.height = Math.floor(window.innerHeight * 0.99);
+        decorationCanvas.width = canvas.width;
+        decorationCanvas.height = canvas.height;
         cols = Math.floor(canvas.width / cellSize);
         rows = Math.floor(canvas.height / cellSize);
         grid = [];
@@ -94,13 +114,13 @@
             y: Math.floor(Math.random() * rows),
             dir: Math.floor(Math.random() * 4),
             randomStepsRemaining: 10,  // 前 10 步採用隨機方向
-            // 螞蟻的軌跡顏色（這裡不直接用於裝飾圈）
+            // 螞蟻的軌跡顏色（不直接用於裝飾圈）
             color: `hsl(${Math.floor(Math.random() * 360)}, 100%, 50%)`,
             // 隨機挑選一種裝飾圈風格
             decorationStyle: decorationStyles[Math.floor(Math.random() * decorationStyles.length)],
-            // 裝飾圈直徑設定為軌跡寬度的2到3倍（隨機介於 10 ~ 15 pixel）
+            // 裝飾圈直徑為軌跡寬度的2到3倍（約 10~15 pixel）
             decorationDiameter: Math.floor((2 + Math.random()) * cellSize),
-            // 裝飾圈獨立顏色，採用鮮豔飽和的色彩 (飽和度 100%，亮度 50%)
+            // 裝飾圈獨立顏色，採用鮮豔飽和的色彩 (100% 飽和、50% 亮度)
             decorationColor: `hsl(${Math.floor(Math.random() * 360)}, 100%, 50%)`
           };
           ants.push(newAnt);
@@ -136,59 +156,60 @@
       }
 
       // ========== 繪製單一螞蟻的裝飾圈 ==========
-      // 裝飾圈繪製於螞蟻所在格子的中心，直徑為 decorationDiameter，
-      // 使用獨立的 decorationColor 及指定的 decorationStyle
-      function drawDecoration(ant) {
+      // 此函式使用傳入的 context 繪製螞蟻的「光環」
+      function drawDecoration(context, ant) {
         let cx = ant.x * cellSize + cellSize / 2;
         let cy = ant.y * cellSize + cellSize / 2;
         let radius = ant.decorationDiameter / 2;
-        ctx.strokeStyle = ant.decorationColor;
+        context.strokeStyle = ant.decorationColor;
         switch(ant.decorationStyle) {
           case "solid":
-            ctx.lineWidth = 2;
-            ctx.setLineDash([]);
-            ctx.beginPath();
-            ctx.arc(cx, cy, radius, 0, 2 * Math.PI);
-            ctx.stroke();
+            context.lineWidth = 2;
+            context.setLineDash([]);
+            context.beginPath();
+            context.arc(cx, cy, radius, 0, 2 * Math.PI);
+            context.stroke();
             break;
           case "dashed":
-            ctx.lineWidth = 2;
-            ctx.setLineDash([4, 4]);
-            ctx.beginPath();
-            ctx.arc(cx, cy, radius, 0, 2 * Math.PI);
-            ctx.stroke();
+            context.lineWidth = 2;
+            context.setLineDash([4, 4]);
+            context.beginPath();
+            context.arc(cx, cy, radius, 0, 2 * Math.PI);
+            context.stroke();
             break;
           case "double":
-            ctx.lineWidth = 1;
-            ctx.setLineDash([]);
-            ctx.beginPath();
-            ctx.arc(cx, cy, radius, 0, 2 * Math.PI);
-            ctx.stroke();
-            ctx.beginPath();
-            ctx.arc(cx, cy, radius + 3, 0, 2 * Math.PI);
-            ctx.stroke();
+            context.lineWidth = 1;
+            context.setLineDash([]);
+            context.beginPath();
+            context.arc(cx, cy, radius, 0, 2 * Math.PI);
+            context.stroke();
+            context.beginPath();
+            context.arc(cx, cy, radius + 3, 0, 2 * Math.PI);
+            context.stroke();
             break;
           case "dotted":
-            ctx.lineWidth = 2;
-            ctx.setLineDash([1, 3]);
-            ctx.beginPath();
-            ctx.arc(cx, cy, radius, 0, 2 * Math.PI);
-            ctx.stroke();
+            context.lineWidth = 2;
+            context.setLineDash([1, 3]);
+            context.beginPath();
+            context.arc(cx, cy, radius, 0, 2 * Math.PI);
+            context.stroke();
             break;
           default:
-            ctx.lineWidth = 2;
-            ctx.setLineDash([]);
-            ctx.beginPath();
-            ctx.arc(cx, cy, radius, 0, 2 * Math.PI);
-            ctx.stroke();
+            context.lineWidth = 2;
+            context.setLineDash([]);
+            context.beginPath();
+            context.arc(cx, cy, radius, 0, 2 * Math.PI);
+            context.stroke();
             break;
         }
       }
 
       // ========== 繪製所有螞蟻的裝飾圈 ==========
+      // 每個 simulation tick 結束前，先清空裝飾 canvas，再根據目前各螞蟻位置繪製光環
       function drawAllDecorations() {
+        dctx.clearRect(0, 0, decorationCanvas.width, decorationCanvas.height);
         ants.forEach(ant => {
-          drawDecoration(ant);
+          drawDecoration(dctx, ant);
         });
       }
 
@@ -201,7 +222,7 @@
             ant.dir = Math.floor(Math.random() * 4);
             ant.randomStepsRemaining--;
           } else {
-            // 白格右轉、黑格左轉
+            // 根據格子顏色決定轉向（白格右轉、黑格左轉）
             if (currentColor === 0) {
               ant.dir = (ant.dir + 1) % 4;
             } else {
@@ -247,11 +268,11 @@
   
       // ========== 開始模擬 ==========
       function startSimulation() {
-        // 隱藏開始按鈕與輸入欄位，顯示暫停按鈕與 canvas
+        // 隱藏開始按鈕與輸入欄位，顯示暫停按鈕與 canvas 容器
         startButton.style.display = 'none';
         antCountInput.style.display = 'none';
         pauseButton.style.display = 'inline-block';
-        canvas.style.display = 'block';
+        canvasContainer.style.display = 'inline-block';
   
         initCanvas();
         drawGrid();
@@ -259,7 +280,7 @@
   
         simulationInterval = setInterval(() => {
           if (!paused) {
-            // 每個 tick 內執行多次更新，再統一重繪裝飾圈
+            // 每個 tick 中執行多次更新，再統一重繪裝飾圈
             for (let i = 0; i < 10; i++) {
               update();
             }
