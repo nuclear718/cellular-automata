@@ -2,7 +2,7 @@
 <html>
   <head>
     <meta charset="utf-8">
-    <title>Langton's Ant - Fullscreen & Bounce with Transparency</title>
+    <title>Langton's Ant - Fullscreen & Bounce with Decorations</title>
     <style>
       /* 讓整個頁面背景為純黑、並將內容置中 */
       html, body {
@@ -10,17 +10,28 @@
         padding: 0;
         width: 100%;
         height: 100%;
-        background-color: #000; /* 黑色底 */
-        color: #fff;            /* 白色文字，方便在黑底上閱讀 */
+        background-color: #000; /* 黑色背景 */
+        color: #fff;
         text-align: center;
       }
-      /* 讓 canvas 置中顯示，並有白色邊框 */
-      canvas {
+      /* 主要容器置中，並利用 relative 定位以便疊加 canvas */
+      #canvasContainer {
+        position: relative;
+        display: inline-block;
+      }
+      /* 主 canvas 置中顯示，並有白色邊框 */
+      #canvas {
         border: 1px solid #fff;
         display: block;
-        margin: 0 auto;
       }
-      /* 讓按鈕與輸入欄位略微分行排列，保持整齊 */
+      /* 裝飾 canvas 採用絕對定位，位於主 canvas 上方，不接收滑鼠事件 */
+      #decorationCanvas {
+        position: absolute;
+        top: 0;
+        left: 0;
+        pointer-events: none;
+      }
+      /* 按鈕與輸入欄位樣式 */
       button, input {
         margin: 0.5rem;
         padding: 0.5rem 1rem;
@@ -37,49 +48,50 @@
     <button id="startButton">開始</button>
     <input id="antCountInput" type="number" min="1" value="1">
     <button id="pauseButton" style="display:none;">暫停</button>
-
-    <!-- canvas 不指定預設寬高，由 JavaScript 動態設定，達到「填滿螢幕 99%」的效果 -->
-    <canvas id="canvas" style="display:none;"></canvas>
-
+    
+    <!-- 主 canvas 與裝飾 canvas 包含於同一容器內 -->
+    <div id="canvasContainer" style="display:none;">
+      <canvas id="canvas"></canvas>
+      <canvas id="decorationCanvas"></canvas>
+    </div>
+    
     <script>
       // ========== 全域變數宣告 ==========
       let canvas = document.getElementById('canvas');
       let ctx = canvas.getContext('2d');
+      let decorationCanvas = document.getElementById('decorationCanvas');
+      let dctx = decorationCanvas.getContext('2d');
+      let canvasContainer = document.getElementById('canvasContainer');
       let startButton = document.getElementById('startButton');
       let pauseButton = document.getElementById('pauseButton');
       let antCountInput = document.getElementById('antCountInput');
 
-      // 將螞蟻與軌跡縮小為原本的一半
-      let cellSize = 5;  // 原本是 10，改為 5
-
-      // cols、rows 代表網格的總行數與列數
+      // 每個格子的尺寸（以像素為單位）
+      let cellSize = 5;
+      // cols、rows 為網格的總行數與列數
       let cols, rows;
-
-      // 用來存放網格狀態：0 = 白色邏輯、1 = 黑色邏輯
-      // （畫面實際顯示時會使用時間漸變色 + 透明度）
+      // grid 用來存放每格的狀態（0 = 白色邏輯、1 = 黑色邏輯）
       let grid = [];
-
-      // 螞蟻陣列，每一隻螞蟻具有位置 (x, y) 與方向 dir（0=上、1=右、2=下、3=左）
+      // 螞蟻陣列：每隻螞蟻除了位置、方向與隨機步數外，
+      // 還有獨立的軌跡顏色與獨立的裝飾圈屬性：
+      // decorationStyle、decorationDiameter 與 decorationColor
       let ants = [];
-
-      // 模擬的計時器 ID
+      // 模擬計時器 ID
       let simulationInterval;
-      // 紀錄開始時間（用於色彩漸變計算）
+      // 記錄開始時間（用於色彩漸變）
       let startTime;
       // 控制是否暫停
       let paused = false;
 
-      // ========== 響應式初始化 ==========
+      // ========== 初始化 Canvas 與網格 ==========
       function initCanvas() {
-        // 讓 canvas 實際像素大小為視窗寬高的 99%
+        // 設定主 canvas 尺寸，並同步 decoration canvas
         canvas.width = Math.floor(window.innerWidth * 0.99);
         canvas.height = Math.floor(window.innerHeight * 0.99);
-
-        // 計算可容納的網格數量
+        decorationCanvas.width = canvas.width;
+        decorationCanvas.height = canvas.height;
         cols = Math.floor(canvas.width / cellSize);
         rows = Math.floor(canvas.height / cellSize);
-
-        // 初始化 grid（全部預設為 0）
         grid = [];
         for (let i = 0; i < cols; i++) {
           grid[i] = [];
@@ -88,17 +100,28 @@
           }
         }
 
-        // 根據使用者輸入的數量建立多隻螞蟻，每隻螞蟻初始位置與方向均為隨機
+        // 建立螞蟻物件
         let antCount = parseInt(antCountInput.value);
         if (isNaN(antCount) || antCount < 1) {
           antCount = 1;
         }
         ants = [];
+        // 裝飾圈風格選項
+        const decorationStyles = ["solid", "dashed", "double", "dotted"];
         for (let i = 0; i < antCount; i++) {
           let newAnt = {
             x: Math.floor(Math.random() * cols),
             y: Math.floor(Math.random() * rows),
-            dir: Math.floor(Math.random() * 4)
+            dir: Math.floor(Math.random() * 4),
+            randomStepsRemaining: 10,  // 前 10 步採用隨機方向
+            // 螞蟻的軌跡顏色（不直接用於裝飾圈）
+            color: `hsl(${Math.floor(Math.random() * 360)}, 100%, 50%)`,
+            // 隨機挑選一種裝飾圈風格
+            decorationStyle: decorationStyles[Math.floor(Math.random() * decorationStyles.length)],
+            // 裝飾圈直徑為軌跡寬度的2到3倍（約 10~15 pixel）
+            decorationDiameter: Math.floor((2 + Math.random()) * cellSize),
+            // 裝飾圈獨立顏色，採用鮮豔飽和的色彩 (100% 飽和、50% 亮度)
+            decorationColor: `hsl(${Math.floor(Math.random() * 360)}, 100%, 50%)`
           };
           ants.push(newAnt);
         }
@@ -106,29 +129,24 @@
 
       // ========== 漸變色計算（含透明度） ==========
       function getColorForTime() {
-        // 計算從開始到現在經過的秒數
         let now = Date.now();
         let elapsedSec = (now - startTime) / 1000;
-        // 60 秒為一個週期，取得 [0, 1) 的週期小數
         let fraction = (elapsedSec % 60) / 60;
-        // 將 fraction 對應到 0~360 的色相（Hue）
         let hue = fraction * 360;
-        // 使用 HSLA，alpha 設定為 0.5（半透明）
         return `hsla(${hue}, 100%, 50%, 0.5)`;
       }
 
       // ========== 根據 grid 狀態繪製單一格子 ==========
       function drawCell(i, j) {
-        // 若 grid[i][j] = 1，則使用「漸變色 + 半透明」；否則用純黑
         if (grid[i][j] === 1) {
           ctx.fillStyle = getColorForTime();
         } else {
-          ctx.fillStyle = '#000'; // 與背景同為純黑
+          ctx.fillStyle = '#000';
         }
         ctx.fillRect(i * cellSize, j * cellSize, cellSize, cellSize);
       }
 
-      // ========== 一次性繪製整個網格 ==========
+      // ========== 繪製整個網格 ==========
       function drawGrid() {
         for (let i = 0; i < cols; i++) {
           for (let j = 0; j < rows; j++) {
@@ -137,93 +155,146 @@
         }
       }
 
-      // ========== 模擬邏輯：更新所有螞蟻狀態 ==========
-      function update() {
-        // 對陣列中每一隻螞蟻進行更新
+      // ========== 繪製單一螞蟻的裝飾圈 ==========
+      // 此函式使用傳入的 context 繪製螞蟻的「光環」
+      function drawDecoration(context, ant) {
+        let cx = ant.x * cellSize + cellSize / 2;
+        let cy = ant.y * cellSize + cellSize / 2;
+        let radius = ant.decorationDiameter / 2;
+        context.strokeStyle = ant.decorationColor;
+        switch(ant.decorationStyle) {
+          case "solid":
+            context.lineWidth = 2;
+            context.setLineDash([]);
+            context.beginPath();
+            context.arc(cx, cy, radius, 0, 2 * Math.PI);
+            context.stroke();
+            break;
+          case "dashed":
+            context.lineWidth = 2;
+            context.setLineDash([4, 4]);
+            context.beginPath();
+            context.arc(cx, cy, radius, 0, 2 * Math.PI);
+            context.stroke();
+            break;
+          case "double":
+            context.lineWidth = 1;
+            context.setLineDash([]);
+            context.beginPath();
+            context.arc(cx, cy, radius, 0, 2 * Math.PI);
+            context.stroke();
+            context.beginPath();
+            context.arc(cx, cy, radius + 3, 0, 2 * Math.PI);
+            context.stroke();
+            break;
+          case "dotted":
+            context.lineWidth = 2;
+            context.setLineDash([1, 3]);
+            context.beginPath();
+            context.arc(cx, cy, radius, 0, 2 * Math.PI);
+            context.stroke();
+            break;
+          default:
+            context.lineWidth = 2;
+            context.setLineDash([]);
+            context.beginPath();
+            context.arc(cx, cy, radius, 0, 2 * Math.PI);
+            context.stroke();
+            break;
+        }
+      }
+
+      // ========== 繪製所有螞蟻的裝飾圈 ==========
+      // 每個 simulation tick 結束前，先清空裝飾 canvas，再根據目前各螞蟻位置繪製光環
+      function drawAllDecorations() {
+        dctx.clearRect(0, 0, decorationCanvas.width, decorationCanvas.height);
         ants.forEach(ant => {
-          // 1. 根據螞蟻所在格子的顏色決定轉向
-          let currentColor = grid[ant.x][ant.y];
-          if (currentColor === 0) {
-            // 白 -> 右轉
-            ant.dir = (ant.dir + 1) % 4;
-          } else {
-            // 黑 -> 左轉
-            ant.dir = (ant.dir + 3) % 4;
-          }
-  
-          // 2. 翻轉目前格子的狀態（0 -> 1, 1 -> 0）
-          grid[ant.x][ant.y] = 1 - currentColor;
-  
-          // 3. 重新繪製該格子
-          drawCell(ant.x, ant.y);
-  
-          // 4. 根據方向移動一格
-          if (ant.dir === 0) {
-            ant.y -= 1; // 向上
-          } else if (ant.dir === 1) {
-            ant.x += 1; // 向右
-          } else if (ant.dir === 2) {
-            ant.y += 1; // 向下
-          } else if (ant.dir === 3) {
-            ant.x -= 1; // 向左
-          }
-  
-          // 5. 邊界檢查：若超出範圍則反彈
-          if (ant.x < 0) {
-            ant.x = 0;
-            if (ant.dir === 3) ant.dir = 1;
-          }
-          if (ant.x >= cols) {
-            ant.x = cols - 1;
-            if (ant.dir === 1) ant.dir = 3;
-          }
-          if (ant.y < 0) {
-            ant.y = 0;
-            if (ant.dir === 0) ant.dir = 2;
-          }
-          if (ant.y >= rows) {
-            ant.y = rows - 1;
-            if (ant.dir === 2) ant.dir = 0;
-          }
+          drawDecoration(dctx, ant);
         });
       }
 
+      // ========== 模擬邏輯：更新所有螞蟻狀態 ==========
+      function update() {
+        ants.forEach(ant => {
+          let currentColor = grid[ant.x][ant.y];
+          // 前 10 步或額外隨機步數：採用隨機方向
+          if (ant.randomStepsRemaining > 0) {
+            ant.dir = Math.floor(Math.random() * 4);
+            ant.randomStepsRemaining--;
+          } else {
+            // 根據格子顏色決定轉向（白格右轉、黑格左轉）
+            if (currentColor === 0) {
+              ant.dir = (ant.dir + 1) % 4;
+            } else {
+              ant.dir = (ant.dir + 3) % 4;
+            }
+          }
+  
+          // 翻轉當前格子的狀態（0 ↔ 1）
+          grid[ant.x][ant.y] = 1 - currentColor;
+          // 重新繪製該格
+          drawCell(ant.x, ant.y);
+  
+          // 根據方向移動一格
+          if (ant.dir === 0) {
+            ant.y -= 1;
+          } else if (ant.dir === 1) {
+            ant.x += 1;
+          } else if (ant.dir === 2) {
+            ant.y += 1;
+          } else if (ant.dir === 3) {
+            ant.x -= 1;
+          }
+  
+          // 邊界檢查：若超出範圍則修正位置，並增加 5 步隨機步數
+          if (ant.x < 0) {
+            ant.x = 0;
+            ant.randomStepsRemaining += 5;
+          }
+          if (ant.x >= cols) {
+            ant.x = cols - 1;
+            ant.randomStepsRemaining += 5;
+          }
+          if (ant.y < 0) {
+            ant.y = 0;
+            ant.randomStepsRemaining += 5;
+          }
+          if (ant.y >= rows) {
+            ant.y = rows - 1;
+            ant.randomStepsRemaining += 5;
+          }
+        });
+      }
+  
       // ========== 開始模擬 ==========
       function startSimulation() {
-        // 隱藏「開始」按鈕與數字輸入欄位
+        // 隱藏開始按鈕與輸入欄位，顯示暫停按鈕與 canvas 容器
         startButton.style.display = 'none';
         antCountInput.style.display = 'none';
-        // 顯示「暫停」按鈕與 canvas
         pauseButton.style.display = 'inline-block';
-        canvas.style.display = 'block';
+        canvasContainer.style.display = 'inline-block';
   
-        // 初始化畫布、網格與螞蟻
         initCanvas();
-  
-        // 繪製初始網格
         drawGrid();
-  
-        // 紀錄開始時間，用於色彩漸變
         startTime = Date.now();
   
-        // 啟動計時器：每隔 50 毫秒更新，為了加速，每次更新執行多次
         simulationInterval = setInterval(() => {
           if (!paused) {
+            // 每個 tick 中執行多次更新，再統一重繪裝飾圈
             for (let i = 0; i < 10; i++) {
               update();
             }
+            drawAllDecorations();
           }
         }, 50);
       }
-
-      // ========== 暫停 / 繼續 切換 ==========
+  
+      // ========== 暫停 / 繼續 ==========
       function togglePause() {
         paused = !paused;
-        // 切換按鈕文字
         pauseButton.textContent = paused ? '繼續' : '暫停';
       }
   
-      // 綁定「開始」與「暫停」按鈕事件
       startButton.addEventListener('click', startSimulation);
       pauseButton.addEventListener('click', togglePause);
     </script>
