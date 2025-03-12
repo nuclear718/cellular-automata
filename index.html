@@ -55,8 +55,8 @@
       let cols, rows;
       // grid 用來存放每格的狀態（0 = 白色邏輯、1 = 黑色邏輯）
       let grid = [];
-      // 螞蟻陣列：每隻螞蟻除了 x, y, 方向、前 10 步隨機邏輯、顏色外，
-      // 另外增加兩個屬性：decorationStyle 與 decorationDiameter（裝飾圈直徑，單位 pixel）
+      // 螞蟻陣列：每隻螞蟻除了 x, y, 方向、前 10 步隨機邏輯與顏色外，
+      // 另外增加 decorationStyle 與 decorationDiameter（裝飾圈直徑，單位 pixel）
       let ants = [];
       // 模擬計時器 ID
       let simulationInterval;
@@ -132,9 +132,8 @@
         }
       }
 
-      // ========== 繪製螞蟻裝飾圈 ==========
-      // 每隻螞蟻在其目前所在的格子中心，會繪製一個獨立的裝飾圈，
-      // 直徑介於 3~5 pixel，且裝飾圈風格各異
+      // ========== 繪製單一螞蟻的裝飾圈 ==========
+      // 裝飾圈將繪製於螞蟻所在格子的中心，不會影響原有軌跡，並以獨特風格呈現
       function drawDecoration(ant) {
         let cx = ant.x * cellSize + cellSize / 2;
         let cy = ant.y * cellSize + cellSize / 2;
@@ -154,7 +153,6 @@
             ctx.beginPath();
             ctx.arc(cx, cy, radius, 0, 2 * Math.PI);
             ctx.stroke();
-            ctx.setLineDash([]);
             break;
           case "double":
             ctx.lineWidth = 1;
@@ -172,7 +170,6 @@
             ctx.beginPath();
             ctx.arc(cx, cy, radius, 0, 2 * Math.PI);
             ctx.stroke();
-            ctx.setLineDash([]);
             break;
           default:
             ctx.lineWidth = 2;
@@ -182,6 +179,15 @@
             ctx.stroke();
             break;
         }
+      }
+
+      // ========== 繪製所有螞蟻的裝飾圈 ==========
+      // 此函式將在每個 simulation tick 結束時呼叫，
+      // 確保所有螞蟻的裝飾圈都會繪製在畫面頂層
+      function drawAllDecorations() {
+        ants.forEach(ant => {
+          drawDecoration(ant);
+        });
       }
 
       // ========== 模擬邏輯：更新所有螞蟻狀態 ==========
@@ -200,12 +206,12 @@
               ant.dir = (ant.dir + 3) % 4;
             }
           }
-
+  
           // 翻轉當前格子的狀態（0 ↔ 1）
           grid[ant.x][ant.y] = 1 - currentColor;
           // 重新繪製該格
           drawCell(ant.x, ant.y);
-
+  
           // 根據方向移動一格
           if (ant.dir === 0) {
             ant.y -= 1;
@@ -216,7 +222,7 @@
           } else if (ant.dir === 3) {
             ant.x -= 1;
           }
-
+  
           // 邊界檢查：若超出範圍則修正位置，並增加 5 步隨機步數
           if (ant.x < 0) {
             ant.x = 0;
@@ -234,12 +240,9 @@
             ant.y = rows - 1;
             ant.randomStepsRemaining += 5;
           }
-
-          // 在螞蟻目前位置上繪製其裝飾圈
-          drawDecoration(ant);
         });
       }
-
+  
       // ========== 開始模擬 ==========
       function startSimulation() {
         // 隱藏開始按鈕與輸入欄位，顯示暫停按鈕與 canvas
@@ -247,26 +250,28 @@
         antCountInput.style.display = 'none';
         pauseButton.style.display = 'inline-block';
         canvas.style.display = 'block';
-
+  
         initCanvas();
         drawGrid();
         startTime = Date.now();
-
+  
         simulationInterval = setInterval(() => {
           if (!paused) {
+            // 每個 tick 內執行多次更新，更新完畢後統一重繪裝飾圈
             for (let i = 0; i < 10; i++) {
               update();
             }
+            drawAllDecorations();
           }
         }, 50);
       }
-
+  
       // ========== 暫停 / 繼續 ==========
       function togglePause() {
         paused = !paused;
         pauseButton.textContent = paused ? '繼續' : '暫停';
       }
-
+  
       startButton.addEventListener('click', startSimulation);
       pauseButton.addEventListener('click', togglePause);
     </script>
