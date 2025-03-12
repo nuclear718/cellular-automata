@@ -55,8 +55,9 @@
       let cols, rows;
       // grid 用來存放每格的狀態（0 = 白色邏輯、1 = 黑色邏輯）
       let grid = [];
-      // 螞蟻陣列：每隻螞蟻除了 x, y, 方向、前 10 步隨機邏輯與顏色外，
-      // 另外增加 decorationStyle 與 decorationDiameter（裝飾圈直徑，單位 pixel）
+      // 螞蟻陣列：每隻螞蟻除了位置、方向與隨機步數之外，
+      // 還有獨立的 trail 色彩與獨立的裝飾圈屬性：
+      // decorationStyle、decorationDiameter 以及 decorationColor
       let ants = [];
       // 模擬計時器 ID
       let simulationInterval;
@@ -93,12 +94,14 @@
             y: Math.floor(Math.random() * rows),
             dir: Math.floor(Math.random() * 4),
             randomStepsRemaining: 10,  // 前 10 步採用隨機方向
-            // 螞蟻初始顏色隨機產生
+            // 螞蟻的軌跡顏色（這裡不直接用於裝飾圈）
             color: `hsl(${Math.floor(Math.random() * 360)}, 100%, 50%)`,
             // 隨機挑選一種裝飾圈風格
             decorationStyle: decorationStyles[Math.floor(Math.random() * decorationStyles.length)],
-            // 裝飾圈直徑介於 3 到 5 pixel 之間
-            decorationDiameter: Math.floor(Math.random() * 3) + 3
+            // 裝飾圈直徑設定為軌跡寬度的2到3倍（隨機介於 10 ~ 15 pixel）
+            decorationDiameter: Math.floor((2 + Math.random()) * cellSize),
+            // 裝飾圈獨立顏色，採用鮮豔飽和的色彩 (飽和度 100%，亮度 50%)
+            decorationColor: `hsl(${Math.floor(Math.random() * 360)}, 100%, 50%)`
           };
           ants.push(newAnt);
         }
@@ -133,12 +136,13 @@
       }
 
       // ========== 繪製單一螞蟻的裝飾圈 ==========
-      // 裝飾圈將繪製於螞蟻所在格子的中心，不會影響原有軌跡，並以獨特風格呈現
+      // 裝飾圈繪製於螞蟻所在格子的中心，直徑為 decorationDiameter，
+      // 使用獨立的 decorationColor 及指定的 decorationStyle
       function drawDecoration(ant) {
         let cx = ant.x * cellSize + cellSize / 2;
         let cy = ant.y * cellSize + cellSize / 2;
         let radius = ant.decorationDiameter / 2;
-        ctx.strokeStyle = ant.color;
+        ctx.strokeStyle = ant.decorationColor;
         switch(ant.decorationStyle) {
           case "solid":
             ctx.lineWidth = 2;
@@ -149,7 +153,7 @@
             break;
           case "dashed":
             ctx.lineWidth = 2;
-            ctx.setLineDash([2, 2]);
+            ctx.setLineDash([4, 4]);
             ctx.beginPath();
             ctx.arc(cx, cy, radius, 0, 2 * Math.PI);
             ctx.stroke();
@@ -161,12 +165,12 @@
             ctx.arc(cx, cy, radius, 0, 2 * Math.PI);
             ctx.stroke();
             ctx.beginPath();
-            ctx.arc(cx, cy, radius + 2, 0, 2 * Math.PI);
+            ctx.arc(cx, cy, radius + 3, 0, 2 * Math.PI);
             ctx.stroke();
             break;
           case "dotted":
             ctx.lineWidth = 2;
-            ctx.setLineDash([1, 2]);
+            ctx.setLineDash([1, 3]);
             ctx.beginPath();
             ctx.arc(cx, cy, radius, 0, 2 * Math.PI);
             ctx.stroke();
@@ -182,8 +186,6 @@
       }
 
       // ========== 繪製所有螞蟻的裝飾圈 ==========
-      // 此函式將在每個 simulation tick 結束時呼叫，
-      // 確保所有螞蟻的裝飾圈都會繪製在畫面頂層
       function drawAllDecorations() {
         ants.forEach(ant => {
           drawDecoration(ant);
@@ -199,7 +201,7 @@
             ant.dir = Math.floor(Math.random() * 4);
             ant.randomStepsRemaining--;
           } else {
-            // 根據格子顏色決定轉向（白格右轉、黑格左轉）
+            // 白格右轉、黑格左轉
             if (currentColor === 0) {
               ant.dir = (ant.dir + 1) % 4;
             } else {
@@ -257,7 +259,7 @@
   
         simulationInterval = setInterval(() => {
           if (!paused) {
-            // 每個 tick 內執行多次更新，更新完畢後統一重繪裝飾圈
+            // 每個 tick 內執行多次更新，再統一重繪裝飾圈
             for (let i = 0; i < 10; i++) {
               update();
             }
