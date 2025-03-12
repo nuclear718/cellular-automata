@@ -94,6 +94,7 @@
         for (let i = 0; i < cols; i++) {
           grid[i] = [];
           for (let j = 0; j < rows; j++) {
+            // 初始狀態皆為 0（代表白色）
             grid[i][j] = { state: 0, color: null, antIndex: null };
           }
         }
@@ -106,6 +107,8 @@
         ants = [];
         const trackStyles = ['filled_rect', 'hollow_rect', 'filled_circle', 'hollow_circle', 'filled_diamond', 'hollow_diamond', 'glow'];
         const decorationStyles = ["solid", "dashed", "double", "dotted"];
+        // 定義所有步行規則
+        const rules = ["RL", "LLRR", "LRRL", "LRRRRRLLR", "RRLLLRLLLRRR"];
         for (let i = 0; i < antCount; i++) {
           let newAnt = {
             x: Math.floor(Math.random() * cols),
@@ -119,7 +122,9 @@
             // 裝飾圈屬性
             decorationStyle: decorationStyles[Math.floor(Math.random() * decorationStyles.length)],
             decorationDiameter: Math.floor((2 + Math.random()) * cellSize),
-            decorationColor: `hsl(${Math.floor(Math.random() * 360)}, 100%, 50%)`
+            decorationColor: `hsl(${Math.floor(Math.random() * 360)}, 100%, 50%)`,
+            // 隨機指派步行規則（共五種規則）
+            rule: rules[Math.floor(Math.random() * rules.length)]
           };
           ants.push(newAnt);
         }
@@ -132,6 +137,7 @@
           ctx.fillStyle = '#000';
           ctx.fillRect(i * cellSize, j * cellSize, cellSize, cellSize);
         } else {
+          // 以儲存該格子時所對應的螞蟻，來決定顏色與樣式
           let ant = ants[cell.antIndex];
           let color = cell.color;
           let x = i * cellSize;
@@ -274,29 +280,28 @@
       function update() {
         ants.forEach((ant, index) => {
           let currentCell = grid[ant.x][ant.y];
-          let currentState = currentCell.state;
+          let rule = ant.rule; // 該螞蟻的步行規則
+          // 根據隨機步數決定轉向（若尚未耗盡隨機步數則隨機轉向）
           if (ant.randomStepsRemaining > 0) {
             ant.dir = Math.floor(Math.random() * 4);
             ant.randomStepsRemaining--;
           } else {
-            if (currentState === 0) {
+            // 根據目前格子的 state 取得對應的轉向指示（'R' 或 'L'）
+            let turn = rule[currentCell.state];
+            if (turn === 'R') {
               ant.dir = (ant.dir + 1) % 4;
-            } else {
+            } else if (turn === 'L') {
               ant.dir = (ant.dir + 3) % 4;
             }
           }
-          // 翻轉格子
-          if (currentState === 0) {
-            // 計算並固定顏色
+          // 更新格子狀態：新狀態為 (原狀態 + 1) mod (規則長度)
+          let newState = (currentCell.state + 1) % rule.length;
+          if (newState === 0) {
+            grid[ant.x][ant.y] = { state: newState, color: null, antIndex: null };
+          } else {
             let hue = (tick % 2400 / 2400 * 360 + ant.hueOffset) % 360;
             let color = `hsl(${hue}, 100%, 50%)`;
-            grid[ant.x][ant.y].state = 1;
-            grid[ant.x][ant.y].color = color;
-            grid[ant.x][ant.y].antIndex = index;
-          } else {
-            grid[ant.x][ant.y].state = 0;
-            grid[ant.x][ant.y].color = null;
-            grid[ant.x][ant.y].antIndex = null;
+            grid[ant.x][ant.y] = { state: newState, color: color, antIndex: index };
           }
           drawCell(ant.x, ant.y);
           // 移動螞蟻

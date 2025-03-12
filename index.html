@@ -81,6 +81,32 @@
       // 控制是否暫停
       let paused = false;
 
+      // ========== 解析規則字串為 tokens ==========
+      // 此函式將例如 "L2NNL1L2L1" 解析成 ["L2", "N", "N", "L1", "L2", "L1"]
+      function parseRule(ruleString) {
+        let tokens = [];
+        for (let i = 0; i < ruleString.length;) {
+          let ch = ruleString[i];
+          if ("RLNU".indexOf(ch) !== -1) {
+            let j = i + 1;
+            let numStr = "";
+            while (j < ruleString.length && /\d/.test(ruleString[j])) {
+              numStr += ruleString[j];
+              j++;
+            }
+            if (numStr === "") {
+              tokens.push(ch);
+            } else {
+              tokens.push(ch + numStr);
+            }
+            i = j;
+          } else {
+            i++;
+          }
+        }
+        return tokens;
+      }
+
       // ========== 初始化 Canvas 與網格 ==========
       function initCanvas() {
         // 設定主 canvas 尺寸，並同步 decoration canvas
@@ -94,7 +120,7 @@
         for (let i = 0; i < cols; i++) {
           grid[i] = [];
           for (let j = 0; j < rows; j++) {
-            // 初始狀態皆為 0（代表白色）
+            // 初始狀態皆為 0
             grid[i][j] = { state: 0, color: null, antIndex: null };
           }
         }
@@ -107,9 +133,19 @@
         ants = [];
         const trackStyles = ['filled_rect', 'hollow_rect', 'filled_circle', 'hollow_circle', 'filled_diamond', 'hollow_diamond', 'glow'];
         const decorationStyles = ["solid", "dashed", "double", "dotted"];
-        // 定義所有步行規則
-        const rules = ["RL", "LLRR", "LRRL", "LRRRRRLLR", "RRLLLRLLLRRR"];
+        // 定義所有七種步行規則
+        const rules = [
+          "RL",
+          "LLRR",
+          "LRRL",
+          "LRRRRRLLR",
+          "RRLLLRLLLRRR",
+          "L2NNL1L2L1",
+          "L1L2NUL2L1R2"
+        ];
         for (let i = 0; i < antCount; i++) {
+          // 隨機選取一種規則，並解析成 tokens 陣列
+          let chosenRule = rules[Math.floor(Math.random() * rules.length)];
           let newAnt = {
             x: Math.floor(Math.random() * cols),
             y: Math.floor(Math.random() * rows),
@@ -123,8 +159,9 @@
             decorationStyle: decorationStyles[Math.floor(Math.random() * decorationStyles.length)],
             decorationDiameter: Math.floor((2 + Math.random()) * cellSize),
             decorationColor: `hsl(${Math.floor(Math.random() * 360)}, 100%, 50%)`,
-            // 隨機指派步行規則（共五種規則）
-            rule: rules[Math.floor(Math.random() * rules.length)]
+            // 儲存步行規則原字串與解析後的 tokens 陣列
+            rule: chosenRule,
+            ruleTokens: parseRule(chosenRule)
           };
           ants.push(newAnt);
         }
@@ -137,7 +174,7 @@
           ctx.fillStyle = '#000';
           ctx.fillRect(i * cellSize, j * cellSize, cellSize, cellSize);
         } else {
-          // 以儲存該格子時所對應的螞蟻，來決定顏色與樣式
+          // 依據該格子存儲時的螞蟻資訊來決定顏色與樣式
           let ant = ants[cell.antIndex];
           let color = cell.color;
           let x = i * cellSize;
@@ -280,26 +317,43 @@
       function update() {
         ants.forEach((ant, index) => {
           let currentCell = grid[ant.x][ant.y];
-          let rule = ant.rule; // 該螞蟻的步行規則
-          // 根據隨機步數決定轉向（若尚未耗盡隨機步數則隨機轉向）
+          let ruleTokens = ant.ruleTokens; // 使用解析後的 tokens 陣列
+          // 若尚有隨機步數則隨機轉向
           if (ant.randomStepsRemaining > 0) {
             ant.dir = Math.floor(Math.random() * 4);
             ant.randomStepsRemaining--;
           } else {
-            // 根據目前格子的 state 取得對應的轉向指示（'R' 或 'L'）
-            let turn = rule[currentCell.state];
-            if (turn === 'R') {
-              ant.dir = (ant.dir + 1) % 4;
-            } else if (turn === 'L') {
-              ant.dir = (ant.dir + 3) % 4;
+            // 根據目前格子的 state 取得對應的 token
+            let token = ruleTokens[currentCell.state];
+            let count = 1;
+            if (token.length > 1) {
+              count = parseInt(token.slice(1));
+            }
+            // 根據 token 第一個字元決定轉向：
+            // R：右轉； L：左轉（相當於 +3 mod 4）； N：不轉向； U：U 轉（180度）
+            switch (token[0]) {
+              case 'R':
+                ant.dir = (ant.dir + count) % 4;
+                break;
+              case 'L':
+                ant.dir = (ant.dir + 3 * count) % 4;
+                break;
+              case 'N':
+                // 不轉向
+                break;
+              case 'U':
+                ant.dir = (ant.dir + 2 * count) % 4;
+                break;
+              default:
+                break;
             }
           }
-          // 更新格子狀態：新狀態為 (原狀態 + 1) mod (規則長度)
-          let newState = (currentCell.state + 1) % rule.length;
+          // 更新格子狀態：新狀態為 (原狀態 + 1) mod (規則 token 總數)
+          let newState = (currentCell.state + 1) % ruleTokens.length;
           if (newState === 0) {
             grid[ant.x][ant.y] = { state: newState, color: null, antIndex: null };
           } else {
-            let hue = (tick % 2400 / 2400 * 360 + ant.hueOffset) % 360;
+            let hue = ((tick % 2400) / 2400 * 360 + ant.hueOffset) % 360;
             let color = `hsl(${hue}, 100%, 50%)`;
             grid[ant.x][ant.y] = { state: newState, color: color, antIndex: index };
           }
