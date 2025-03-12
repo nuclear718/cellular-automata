@@ -324,7 +324,7 @@
             ant.dir = Math.floor(Math.random() * 4);
             ant.randomStepsRemaining--;
           } else {
-            let token = ruleTokens[currentCell.state];
+            let token = ruleTokens[currentCell.state % ruleTokens.length]; // 修正：使用模數運算確保 token 有效
             let count = 1;
             if (token.length > 1) {
               count = parseInt(token.slice(1));
