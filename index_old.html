@@ -88,10 +88,10 @@
           }
         }
 
-        // 將螞蟻放在網格的隨機位置，並設定隨機方向（0=上、1=右、2=下、3=左）
-        ant.x = Math.floor(Math.random() * cols);
-        ant.y = Math.floor(Math.random() * rows);
-        ant.dir = Math.floor(Math.random() * 4);
+        // 將螞蟻放在網格正中央，方向朝上
+        ant.x = Math.floor(cols / 2);
+        ant.y = Math.floor(rows / 2);
+        ant.dir = 0;
       }
 
       // ========== 漸變色計算（含透明度） ==========
