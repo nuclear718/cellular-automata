@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>朗頓螞蟻步行規則與圖形模式報告</title>
+  <!-- 引入適合繁體中文與科技風的字體 -->
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC&display=swap" rel="stylesheet">
+  <style>
+    /* 全站基本設定 */
+    body {
+      background-color: #000;
+      color: #FFF;
+      font-family: 'Noto Sans TC', sans-serif;
+      line-height: 1.6;
+      margin: 0;
+      padding: 20px;
+    }
+    /* 標題樣式：所有標題以鮮明黃色呈現 */
+    h1, h2, h3, h4, h5, h6 {
+      color: #FFFF00;
+      margin-top: 1.2em;
+      margin-bottom: 0.5em;
+    }
+    /* 段落、清單間距 */
+    p {
+      margin-bottom: 1em;
+    }
+    /* 強調重點文字 */
+    .highlight {
+      color: #FFFF00;
+    }
+    /* 表格樣式 */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0;
+      font-size: 0.95em;
+    }
+    table, th, td {
+      border: 1px solid #FFFF00;
+    }
+    th, td {
+      padding: 10px;
+      text-align: left;
+    }
+    th {
+      background-color: #222;
+    }
+    tr:nth-child(even) {
+      background-color: #111;
+    }
+    /* 區塊標題底線 */
+    .section-title {
+      border-bottom: 2px solid #FFFF00;
+      padding-bottom: 5px;
+    }
+    /* 超連結樣式（如有） */
+    a {
+      color: #FFFF00;
+      text-decoration: none;
+    }
+    a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+
+  <h1 class="highlight">朗頓螞蟻的各種步行規則與圖形模式詳述</h1>
+  <p>朗頓螞蟻（Langton’s Ant）是一種<strong class="highlight">元胞自動機</strong>，由1986年克里斯·朗頓提出。它的規則極其簡單，但能展現出複雜的<strong class="highlight">湧現行為</strong>。經典的朗頓螞蟻在一個無限的方格棋盤上行走，每個方格只有黑、白兩種狀態。儘管規則看似簡單，卻能產生多樣化的圖形模式和行為模式，包括<strong class="highlight">對稱結構</strong>、<strong class="highlight">混亂模式</strong>、<strong class="highlight">週期模式</strong>以及類<strong class="highlight">碎形</strong>的結構等。本文將完整介紹經典朗頓螞蟻的規則，並進一步說明各種擴展版本（多狀態、多方向、隨機行為、不同比維度、多隻螞蟻等）的規則，以及這些規則所產生的圖形模式如何演變。最後，我們將以表格歸納各種規則與圖形模式之間的對應關係，說明不同規則如何影響最終行為。</p>
+
+  <h2 class="highlight section-title">經典朗頓螞蟻的規則與模式</h2>
+  <p><strong class="highlight">經典規則：</strong>朗頓螞蟻的經典規則僅涉及<strong class="highlight">兩種狀態</strong>（黑與白）和<strong class="highlight">右轉/左轉</strong>兩種動作。具體而言：當螞蟻站在「白色」方格時，向右轉90度，將該方格翻為黑色，然後前進一格；當螞蟻站在「黑色」方格時，向左轉90度，將該方格翻為白色，再前進一格。這隻“螞蟻”可以朝向上、下、左、右四個方向之一移動，每一步按上述規則行事。初始時，整個平面通常假定為白色且螞蟻處於某一固定方向。</p>
+  
+  <p><strong class="highlight">湧現行為：</strong>令人驚訝的是，如此簡單的規則會導致<strong class="highlight">極為複雜</strong>的路徑與圖案。在演化過程中，經典朗頓螞蟻通常經歷<strong class="highlight">三個階段</strong>的模式：</p>
+  
+  <ul>
+    <li><strong class="highlight">前期的簡單對稱階段：</strong>最初的幾百步內，螞蟻翻轉的方格形成一些簡單且常常<strong class="highlight">對稱</strong>的圖案。這些對稱形狀可能是局部的小花樣，因為螞蟻在規則作用下反覆產生鏡像的路徑。</li>
+    <li><strong class="highlight">中期的混亂階段：</strong>在幾百步之後，螞蟻所經之處形成一大片<strong class="highlight">不規則</strong>的黑白方格構成的區域。此時螞蟻的路徑看似隨機穿梭於這片混亂區域，呈現<strong class="highlight">類隨機（pseudo-random）</strong>的行為，但其實系統仍是完全決定論的（並未引入真隨機性）。這種混亂狀態會持續相當長一段時間（大約一直到1萬步左右）。</li>
+    <li><strong class="highlight">後期的週期高速公路階段：</strong>令人驚奇的是，在約1萬步之後，螞蟻<strong class="highlight">突然「擺脫」混亂</strong>，開始反覆建造一條<strong class="highlight">斜向延伸的“高速公路”</strong>圖案。所謂“高速公路”是指一段重複出現的方格和路徑構型：螞蟻循著長度104步的一個固定循環週期不斷前進，使得身後留下筆直延伸的有序軌跡。這條高速公路將<strong class="highlight">無限延伸</strong>下去（除非邊界限制），而螞蟻就此進入<strong class="highlight">週期性</strong>的運動模式。</li>
+  </ul>
+  
+  <p>經典朗頓螞蟻在混亂階段後形成的「高速公路」模式示意圖。螞蟻經過最初的對稱與混亂階段，最終開始構築一條重複104步循環的筆直道路形圖案並無限延伸（圖中紫色區域為螞蟻翻轉過的方格，灰紫色線條向右延伸部分即為高速公路）。</p>
+  
+  <p>經過大量模擬，人們發現<strong class="highlight">無論何種有限的初始配置</strong>（不同的初始方格著色方式），最終幾乎都會收斂到相同的高速公路模式。這提示高速公路圖案可能是經典朗頓螞蟻的一種<strong class="highlight">吸引子</strong>（即系統長時間演化後趨近的狀態）。不過，至今仍無人能嚴格證明<strong class="highlight">所有</strong>初始情況都必然產生高速公路。已證明的是，不論初始狀態如何，螞蟻的軌跡<strong class="highlight">總是不斷向外擴展</strong>而非困在有限區域內。這種複雜但有規律的最終行為令人稱奇：簡單規則下孕育出了<strong class="highlight">可預測的結構</strong>（高速公路），而中間經歷的<strong class="highlight">混亂模式</strong>則展現了湧現複雜性的魅力。</p>
+
+  <h2 class="highlight section-title">擴展版本的步行規則與圖案</h2>
+  
+  <h3 class="highlight">多顏色與多狀態螞蟻</h3>
+  <p><strong class="highlight">概念：</strong>在經典規則中，方格只有黑與白兩種顏色（對應兩種狀態）。一種自然的擴展是引入<strong class="highlight">多種顏色</strong>（或等價地，讓螞蟻本身具有多種「內部狀態」）。這類變體通常被稱為「多狀態螞蟻」或「多色螞蟻」；更廣義地，也稱為<strong class="highlight">“Turmite”</strong>（「圖靈機白蟻」，由 Turing machine 和 termite 組合而成）。多顏色螞蟻的規則需要為每種顏色定義螞蟻的轉向行為。例如，為每個顏色指定螞蟻在該格時<strong class="highlight">向左轉（L）</strong>或<strong class="highlight">向右轉（R）</strong>，並將該格切換至下一種顏色。當螞蟻離開該格後，該格的顏色循環到下一狀態。經典的朗頓螞蟻即是兩色的特例，可記為規則序列「RL」（白→右轉，黑→左轉）。</p>
+  
+  <p><strong class="highlight">命名規則：</strong>為了簡潔表示不同顏色序列的規則，研究者引入了一種<strong class="highlight">字母串命名法</strong>。例如：「RL」代表雙色經典螞蟻；「RLR」代表一種三色螞蟻，螞蟻遇到第一種顏色右轉，第二種顏色左轉，第三種顏色再右轉，如此循環；「LLRR」則代表四色螞蟻，依次遇到的四種顏色轉向為左、左、右、右。這種字母串形式能一目瞭然地表示轉向序列。</p>
+  
+  <p><strong class="highlight">圖形模式：</strong>多顏色螞蟻展現出非常<strong class="highlight">多樣化</strong>的圖案行為，包括<strong class="highlight">持續混沌</strong>、<strong class="highlight">重複對稱</strong>、<strong class="highlight">局部填充</strong>、<strong class="highlight">新的高速公路</strong>，甚至<strong class="highlight">碎形</strong>等。以下列舉數種典型規則及其已觀察到的模式：</p>
+  
+  <ul>
+    <li>
+      <strong class="highlight">RLR（三色螞蟻）：</strong> 螞蟻規則循環為右-左-右。實驗顯示，這隻螞蟻走出的圖案<strong class="highlight">持續混亂生長</strong>，形成複雜的彩色塊狀構造。截至目前，人們尚未觀察到它會形成類似經典螞蟻的高速公路。
+    </li>
+    <li>
+      <strong class="highlight">LLRR（四色螞蟻）：</strong> 螞蟻規則為左-左-右-右。這樣的螞蟻產生的圖案呈現高度<strong class="highlight">對稱</strong>的反覆結構。在演化過程中，方格顏色的分佈保持某種對稱性不斷擴張，圖案給人一種有序美感。很多具有<strong class="highlight">連續相同轉向命令</strong>（如「LL」或「RR」出現）的規則都傾向於形成<strong class="highlight">重複對稱</strong>的模式。
+    </li>
+    <li>
+      <strong class="highlight">LRRRRRLLR（八色螞蟻）：</strong> 螞蟻規則依序為左-右-右-右-右-右-左-左，共八個狀態。這個規則的螞蟻會在自身周圍形成一個<strong class="highlight">近乎正方形</strong>的填充圖案，且不斷將這個方形向外擴大，彷彿在<strong class="highlight">逐步填滿一個正方區域</strong>。
+    </li>
+    <li>
+      <strong class="highlight">LLRRRLRLRLLR（十二色螞蟻）：</strong> 這是一個較長的轉向序列（長度12）。模擬顯示，它最終能生成一條<strong class="highlight">曲折纏繞的高速公路</strong>。與經典高速公路不同的是，這條高速公路的路徑較為複雜，可能包含轉折，但仍然表現出重複周期的<strong class="highlight">可預測結構</strong>。
+    </li>
+    <li>
+      <strong class="highlight">RRLLLRLLLRRR（十二色螞蟻）：</strong> 這個規則產生的圖案相當特殊。在約15,900步之後，螞蟻軌跡形成了一個<strong class="highlight">實心的三角形</strong>形狀結構。隨後，整個三角形開始平移，彷彿被螞蟻「推著」在平面上滑行一般。這是一種有趣的<strong class="highlight">週期-移動結構</strong>，結合了空間填充和重複運動。
+    </li>
+    <li>
+      <strong class="highlight">其他碎形與螺旋：</strong> 某些多色規則會產生<strong class="highlight">碎形般的精細圖案</strong>。例如，規則「LRRL」（四色螞蟻）雖然轉向序列不長，但其演化出的軌跡卻形成<strong class="highlight">自相似</strong>的複雜結構，明顯帶有碎形特徵。與經典螞蟻不同，這類螞蟻的路徑中看不到高速公路的跡象，即使大幅延長模擬步數也<strong class="highlight">不會出現</strong>週期公路。這說明某些規則（特別是包含特定轉向序列組合的）會導致<strong class="highlight">無限復雜但無週期</strong>的碎形圖案。
+    </li>
+  </ul>
+  
+  <p>值得一提的是，多狀態螞蟻常見的行為還包括<strong class="highlight">螺旋生成</strong>、<strong class="highlight">局部混亂結構</strong>等。例如，有些六色螞蟻會在翻轉軌跡中生成一圈圈往外擴張的<strong class="highlight">螺旋臂</strong>，或是在混沌塊中突然孕育出一段高速公路。下文將介紹的多方向及多維度情況中，我們也會看到<strong class="highlight">碎形螺旋</strong>和<strong class="highlight">環狀</strong>圖案的例子。</p>
+  
+  <h3 class="highlight">多方向轉向規則與不同維度</h3>
+  <p><strong class="highlight">多方向轉向：</strong>經典朗頓螞蟻的轉向限制在90°左轉或右轉。然而，我們可以擴展螞蟻在<strong class="highlight">不同角度</strong>轉向甚至不轉向（直走）的規則。例如，在方格（四鄰域）環境中，連續兩次右轉（RR）等效於180°轉身，即掉頭；一個「直走（不轉向）」則可視為特殊的轉向命令。在更一般情況下，人們研究了<strong class="highlight">六鄰域</strong>（六方向）的轉向規則，即將螞蟻置於<strong class="highlight">六角形網格</strong>（蜂巢格）上，而非方形網格。六角格子中螞蟻每步有六個相鄰方向可選，通常使用以下標記表示轉向指令：</p>
+  
+  <ul>
+    <li><strong class="highlight">N</strong>：保持方向不變（No turn）。</li>
+    <li><strong class="highlight">R1</strong>：順時針轉60°。</li>
+    <li><strong class="highlight">R2</strong>：順時針轉120°。</li>
+    <li><strong class="highlight">U</strong>：順時針轉180°（U形轉彎，即掉頭）。</li>
+    <li><strong class="highlight">L2</strong>：逆時針轉120°。</li>
+    <li><strong class="highlight">L1</strong>：逆時針轉60°。</li>
+  </ul>
+  
+  <p>透過這套標記，可以描述六角格網格上的朗頓螞蟻規則。例如，「L2NNL1L2L1」就是一個六狀態的規則串，其中包括不轉向和60°/120°的左右轉。</p>
+  
+  <p><strong class="highlight">不同維度的空間：</strong>除了改變轉向角度，朗頓螞蟻也可以被推廣到<strong class="highlight">不同維度</strong>的空間中。例如：</p>
+  
+  <ul>
+    <li>
+      <strong class="highlight">六角平面（2D變體）：</strong> 如上所述，將螞蟻放在六邊形鑲嵌的平面上，使其有六個鄰居方向，並設計對應的轉向規則。在此環境下，有些規則會產生<strong class="highlight">環狀對稱</strong>的圖案。例如，規則「L2NNL1L2L1」規則下的螞蟻在約83,000步後繪製出一個<strong class="highlight">近似圓形</strong>的環狀圖案：
+      <br>
+      <em>六角格規則「L2NNL1L2L1」的朗頓螞蟻經過83,000步後形成的環狀結構。圖案呈現六重對稱的環形碎片，彷彿一朵複雜的花環，體現了該規則下<strong class="highlight">圓形擴張</strong>的特性。</em>
+    </li>
+    <li>
+      <strong class="highlight">三角平面（2D變體）：</strong> 可以考慮將螞蟻放在三角形鑲嵌的平面上。在此情況下，每個格子有若干鄰居（三角形鑲嵌其實每點有6個鄰近方向，與六角格類似但鄰接關係不同）。一些實驗顯示，三角格上的螞蟻規則也能產生獨特圖案，如有的會形成<strong class="highlight">重複的三角形圖案</strong>或其他幾何結構。例如，德語稱為「三角朗頓螞蟻」（DREIECKS-LANGTON-AMEISE）的模擬顯示，某些規則下螞蟻會構築疊層的三角形塊狀花紋。
+    </li>
+    <li>
+      <strong class="highlight">三維空間（3D變體）：</strong> 更具想像力的擴展是考慮螞蟻在三維立體網格中移動。例如在立方體格點構成的三維空間，每個格子有6個鄰居（上下前後左右各一）。可定義類似的規則：如在某種狀態下右旋90°（朝某一方向轉身），在另一狀態下左旋90°，甚至向上或向下轉向等。由於三維中可以有更多可能的轉向（包括繞垂直軸或水平軸轉向等），規則設計更為複雜。已有一些<strong class="highlight">三維朗頓螞蟻</strong>的可視化演示（例如透過計算機圖形顯示螞蟻在立體空間留下的軌跡），結果展現出迷人的立體對稱和混沌結構。但總體而言，3D版本仍屬探索階段，其模式分類和2D相比更加豐富且未完全研究透徹。
+    </li>
+  </ul>
+  
+  <p><strong class="highlight">模式特性：</strong>多方向與不同維度的朗頓螞蟻，因為鄰域和轉向的改變，產生的圖案往往帶有新的對稱性和幾何特徵。例如，在六角網格中，由於60度轉角的存在，圖案可能呈現<strong class="highlight">六重對稱</strong>或<strong class="highlight">輻射狀</strong>的結構。一些規則會讓螞蟻沿著<strong class="highlight">螺旋路徑</strong>前進，或者產生<strong class="highlight">圓盤狀擴張</strong>的塗色區域。還有些規則則保持混亂的紋理，但在大尺度上形成<strong class="highlight">多邊形</strong>的輪廓。這些模式進一步證實了簡單規則在不同空間拓撲下依然能湧現豐富的行為。例如，上節提到的六角規則「R1R2NUR2R1L2」所產生的碎形螺旋，就是<strong class="highlight">碎形模式</strong>與<strong class="highlight">六重對稱</strong>相結合的典型案例。
+  </p>
+  
+  <h3 class="highlight">隨機行為變體</h3>
+  <p><strong class="highlight">概念：</strong>上述所有經典和擴展規則都是<strong class="highlight">完全決定論</strong>的——同樣的初始條件每次都會得到相同結果。然而，我們也可以引入<strong class="highlight">隨機性</strong>來製造新的變體，探究不確定性如何影響圖案生成。隨機變體主要有兩種思路：</p>
+  
+  <ol>
+    <li>
+      <strong class="highlight">隨機規則設定：</strong>在模擬開始前，<strong class="highlight">隨機生成</strong>螞蟻的轉向規則序列。例如，可隨機產生一串長度 <em>n</em> 的 L/R 序列（對應 n 種顏色），每種顏色轉向的方向以隨機方式決定。研究者曾嘗試生成非常多狀態（例如4096種顏色！）的隨機規則集合，讓螞蟻在如此複雜的規則下行走。結果顯示，不同隨機規則會產生<strong class="highlight">千變萬化</strong>的圖案：有些可能偶然形成局部對稱或高速公路，有些始終雜亂無章，還有些展現出意想不到的結構。由於規則本身是隨機的，每次模擬都可能出現截然不同的行為，提供了<strong class="highlight">探索參數空間</strong>的有力方式。
+    </li>
+    <li>
+      <strong class="highlight">隨機行為決策：</strong>在螞蟻移動過程中引入隨機因素。比如，我們可以修改規則如下：當螞蟻處於某一顏色格時，不是固定轉左或轉右，而是以一定<strong class="highlight">機率</strong>選擇左轉或右轉（例如各50%的機率）。這樣即使整體規則概率分佈固定，每次模擬的具體路徑也會不同。這種<strong class="highlight">概率朗頓螞蟻</strong>的軌跡通常表現為<strong class="highlight">更強的擴散性</strong>——由於隨機轉向，螞蟻不太可能長時間沿同一路徑反覆構建結構，取而代之的是彷彿隨機漫步般地塗色網格。其圖案多數時候是雜亂無序的塊狀，缺乏長程周期結構（高速公路極不容易形成）。在統計上，這類系統會增加<strong class="highlight">熵</strong>，與熱力學中無序度增加的趨勢類似。
+    </li>
+  </ol>
+  
+  <p>雖然隨機變體的結果較難形成有序結構，但透過調控隨機性，我們能觀察到<strong class="highlight">從秩序到無序</strong>的漸變，進一步探討螞蟻系統的<strong class="highlight">隨機熵</strong>和<strong class="highlight">混沌度</strong>。</p>
+  
+  <h3 class="highlight">多隻螞蟻的系統</h3>
+  <p><strong class="highlight">概念：</strong>另一種有趣的擴展是在同一平面上放置<strong class="highlight">多隻朗頓螞蟻</strong>同時行走。每隻螞蟻都遵循相同的基本規則（例如經典 RL 或某個多色規則），但牠們之間可以<strong class="highlight">互相影響</strong>：一隻螞蟻翻轉了格子的顏色，將改變另一隻螞蟻日後經過該格時的行為。多螞蟻系統可以被視為一種<strong class="highlight">更高階的元胞自動機</strong>，螞蟻之間的相遇和互動可能需要特殊的處理規則。例如，當兩隻螞蟻相對撞見時，可以規定它們<strong class="highlight">分裂</strong>、<strong class="highlight">合併</strong>或<strong class="highlight">湮滅</strong>等。</p>
+  
+  <p><strong class="highlight">圖形模式：</strong>多螞蟻的共同作用會產生更為<strong class="highlight">繁複的結構</strong>。例如，多隻經典螞蟻若排列好初始位置和方向，可能協同構築出大型的幾何圖案。有研究者讓多螞蟻形成<strong class="highlight">週期震盪</strong>的配置，如一群螞蟻反覆來回構建某種圖案，整體表現為<strong class="highlight">振盪子</strong>（oscillator）行為。維基百科的一幅示意圖顯示，多隻螞蟻可以共同搭建出一個<strong class="highlight">正三角形</strong>的塊狀結構。這種三角形會在螞蟻群的持續作用下不斷重複（仿若一個絕對振盪器），展示了<strong class="highlight">合作湧現</strong>的威力。還有研究者探討了讓螞蟻具有<strong class="highlight">不同行為選擇</strong>的情況：例如有的螞蟻在某種條件下左轉，某種條件下右轉；當兩螞蟻相遇時可以分裂成更多螞蟻，或彼此抵消消失。這些機制使得多螞蟻系統能產生<strong class="highlight">遠比單隻螞蟻豐富</strong>的圖案，包括多種對稱結構、移動的物體形狀、甚至類生命的群體行為。
+  </p>
+  
+  <h2 class="highlight section-title">不同規則與圖形模式的總結</h2>
+  <p>綜上，各種朗頓螞蟻規則產生了豐富多樣的圖形行為。我們可以從<strong class="highlight">混亂程度</strong>、<strong class="highlight">對稱性</strong>、<strong class="highlight">週期性</strong>和<strong class="highlight">碎形性</strong>等維度來理解這些模式。下面的表格總結了幾種典型規則及其對應的圖形模式特徵：</p>
+  
+  <table>
+    <thead>
+      <tr>
+        <th>步行規則</th>
+        <th>螞蟻狀態（顏色）數</th>
+        <th>圖形模式特徵</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong class="highlight">RL（經典朗頓螞蟻）</strong><br>（白→右轉，黑→左轉）</td>
+        <td>2（黑/白）</td>
+        <td>
+          <strong class="highlight">三階段行為</strong>：初期小型<strong class="highlight">對稱</strong>圖案 → 中期<strong class="highlight">混亂</strong>無序塊狀（pseudo-random路徑）→ 約10000步後出現<strong class="highlight">週期104步</strong>的直線<strong class="highlight">高速公路</strong>。<br>
+          所有有限初始配置觀測均收斂到同一高速公路模式（尚未嚴格證明）。
+        </td>
+      </tr>
+      <tr>
+        <td><strong class="highlight">LR（黑→右轉，白→左轉）</strong></td>
+        <td>2</td>
+        <td>
+          與經典 RL 類似但鏡像（起始轉向相反）。初期對稱 → 中期混亂 → 最終形成<strong class="highlight">高速公路</strong>，方向相對 RL 鏡像反轉（例如高速公路延伸方向相反）。本質行為與 RL 相同，差別僅在圖案對稱性的左右鏡像上。
+        </td>
+      </tr>
+      <tr>
+        <td><strong class="highlight">RLR</strong></td>
+        <td>3</td>
+        <td>
+          <strong class="highlight">持續混亂</strong>增長：無明顯對稱或周期結構，大範圍形成雜亂彩色圖案。<br>
+          <em>（未觀察到高速公路；是否最終形成尚不確定）</em>
+        </td>
+      </tr>
+      <tr>
+        <td><strong class="highlight">LLRR</strong></td>
+        <td>4</td>
+        <td>
+          <strong class="highlight">高度對稱</strong>的反覆圖案：螞蟻軌跡產生規則的鏡像花紋，不斷向外擴展。<br>
+          無雜亂階段，整體結構<strong class="highlight">有序可預測</strong>。這類規則對應<strong class="highlight">可預測結構</strong>，具備某種週期或重複性，但未形成獨立高速公路。
+        </td>
+      </tr>
+      <tr>
+        <td><strong class="highlight">LRRRRRLLR</strong></td>
+        <td>8</td>
+        <td>
+          <strong class="highlight">區域填充</strong>行為：螞蟻在自身周圍構築起實心的<strong class="highlight">正方形</strong>塊狀結構，並隨時間將此方形框向外推進擴大。<br>
+          圖案具有<strong class="highlight">中心對稱</strong>特性，但邊界呈方形而非圓形。無獨立高速公路，而是<strong class="highlight">空間填充</strong>類型模式。
+        </td>
+      </tr>
+      <tr>
+        <td><strong class="highlight">LLRRRLRLRLLR</strong></td>
+        <td>12</td>
+        <td>
+          <strong class="highlight">混亂後產生公路</strong>：初期塗色混亂，之後形成一條<strong class="highlight">曲折的高速公路</strong>。<br>
+          高速公路本身帶有彎曲和轉折，但之後重複出現、延伸移動，屬於<strong class="highlight">週期-移動結構</strong>。是混亂與有序並存的複合行為。
+        </td>
+      </tr>
+      <tr>
+        <td><strong class="highlight">RRLLLRLLLRRR</strong></td>
+        <td>12</td>
+        <td>
+          <strong class="highlight">特殊圖案</strong>：先在 ~15900 步時形成<strong class="highlight">填滿的三角形</strong>塊狀結構，隨後整個三角形開始平移並重複生成新的三角形。<br>
+          具有<strong class="highlight">階段性</strong>（先靜態形成，後動態移動）的獨特模式。
+        </td>
+      </tr>
+      <tr>
+        <td><strong class="highlight">LRRL</strong>（如文獻所述）</td>
+        <td>4</td>
+        <td>
+          <strong class="highlight">碎形對稱</strong>：產生<strong class="highlight">碎形般</strong>的精細結構。<br>
+          圖案在不同尺度上呈現相似的塊狀排列，整體有對稱美感但<strong class="highlight">沒有周期</strong>（從未產生高速公路）。屬於湧現複雜性的典型，屬<strong class="highlight">碎形模式</strong>。
+        </td>
+      </tr>
+      <tr>
+        <td><strong class="highlight">L2NNL1L2L1</strong><br>（六角網格）</td>
+        <td>6（六方向）</td>
+        <td>
+          <strong class="highlight">環狀對稱</strong>：在六角平面上生成近似<strong class="highlight">圓形</strong>的環狀圖案。<br>
+          圖案具有<strong class="highlight">六重對稱</strong>，隨步數擴大為更大的環。無雜亂的混亂階段，屬<strong class="highlight">有序擴張</strong>模式。
+        </td>
+      </tr>
+      <tr>
+        <td><strong class="highlight">R1R2NUR2R1L2</strong><br>（六角網格）</td>
+        <td>6</td>
+        <td>
+          <strong class="highlight">碎形螺旋</strong>：產生<strong class="highlight">自相似螺旋</strong>圖案。<br>
+          螞蟻軌跡形成多條向外生長的螺旋臂，局部結構複雜但具有碎形規律。此規則下圖案<strong class="highlight">無最終高速公路</strong>，而是不斷成長的<strong class="highlight">碎形螺旋模式</strong>。
+        </td>
+      </tr>
+      <tr>
+        <td><strong class="highlight">隨機規則</strong>（如隨機生成4096狀態序列）</td>
+        <td>任意（隨機決定）</td>
+        <td>
+          <strong class="highlight">模式多樣</strong>：由於轉向行為隨機決定，可出現各種各樣的圖案。有的類似混亂噪點，有的出現暫時對稱，有的甚至出現局部周期結構，但<strong class="highlight">不可預測</strong>且每次結果不同。整體往往偏向無序，但統計上可分析其隨機性。
+        </td>
+      </tr>
+      <tr>
+        <td><strong class="highlight">概率轉向</strong>（如每步隨機左/右）</td>
+        <td>2（或多）</td>
+        <td>
+          <strong class="highlight">擴散混亂</strong>：螞蟻路徑類似隨機遊走，圖案為漸進擴大的<strong class="highlight">雜色區域</strong>。難以形成重複結構，高速公路極少發生。圖案的<strong class="highlight">混亂度最高</strong>，通常無明顯對稱或周期。
+        </td>
+      </tr>
+      <tr>
+        <td><strong class="highlight">多螞蟻（經典RL）</strong></td>
+        <td>視螞蟻數而定</td>
+        <td>
+          <strong class="highlight">群體結構</strong>：多隻經典螞蟻可協作形成大尺度<strong class="highlight">對稱圖案</strong>（例如正三角形、方形）或<strong class="highlight">振盪</strong>的反覆結構。模式取決於螞蟻間的相互作用規則，可有<strong class="highlight">集體高速公路</strong>或複雜動態結構。
+        </td>
+      </tr>
+    </tbody>
+  </table>
+  
+  <h2 class="highlight section-title">結論</h2>
+  <p>朗頓螞蟻以其<strong class="highlight">簡潔的規則</strong>和<strong class="highlight">豐富的行為</strong>成為複雜系統的經典案例。透過改變狀態數、轉向方式、引入隨機性或增加螞蟻數量，我們觀察到了從<strong class="highlight">完全混亂</strong>到<strong class="highlight">高度有序</strong>、從<strong class="highlight">局部對稱</strong>到<strong class="highlight">碎形結構</strong>的各種圖案。經典雙狀態螞蟻展示了混沌中湧現秩序（高速公路）的迷人現象，而多狀態螞蟻則揭示了規則複雜性如何直接塑造圖案的對稱性與周期性。一些規則產生<strong class="highlight">周期模式</strong>（如高速公路或振盪器），另一些則給出<strong class="highlight">不可預測的結構</strong>（如長期混亂或碎形）。多方向與多維度的擴展引入了新的幾何對稱，使圖案更為豐富；而隨機行為則提供了研究<strong class="highlight">秩序-無序過渡</strong>的新視角。多螞蟻系統進一步證明了簡單個體互動能形成<strong class="highlight">複雜群體結構</strong>。由於螞蟻之間的相互作用是非線性的，整體系統的可解析性更差，但也更接近於現實中<strong class="highlight">群體智能</strong>或<strong class="highlight">生物群落</strong>的模型。因此，多螞蟻的朗頓系統為研究<strong class="highlight">複雜系統</strong>和<strong class="highlight">人工生命</strong>提供了又一個有趣平台。</p>
+  
+  <p>總體而言，朗頓螞蟻的各種變體強調了一個關鍵理念：<strong class="highlight">複雜性可以從極度簡單的規則中產生</strong>。無論是混亂還是有序，這些圖案都是規則與初始條件共同作用的結果。透過比較不同規則的行為，我們更加深入地理解了動態系統中<strong class="highlight">混亂與秩序</strong>的交織，以及<strong class="highlight">決定論</strong>與<strong class="highlight">隨機性</strong>在圖案形成中的角色。朗頓螞蟻的豐富多樣性不僅在數學和計算機科學上具有意義，也為我們提供了一面鏡子，隱喻地映射出許多自然系統中簡單與複雜的辯證關係。期待未來更多的研究能發現新的螞蟻規則和模式，加深我們對<strong class="highlight">湧現現象</strong>的認識。</p>
+
+</body>
+</html>
