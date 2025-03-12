@@ -59,7 +59,7 @@
       // （畫面實際顯示時會使用時間漸變色 + 透明度）
       let grid = [];
 
-      // 螞蟻陣列，每一隻螞蟻具有位置 (x, y) 與方向 dir（0=上、1=右、2=下、3=左）
+      // 螞蟻陣列，每一隻螞蟻具有位置 (x, y)、方向 dir（0=上、1=右、2=下、3=左），以及 randomStepsRemaining（前 10 步隨機）
       let ants = [];
 
       // 模擬的計時器 ID
@@ -88,7 +88,7 @@
           }
         }
 
-        // 根據使用者輸入的數量建立多隻螞蟻，每隻螞蟻初始位置與方向均為隨機
+        // 根據使用者輸入的數量建立多隻螞蟻，每隻螞蟻初始位置、初始方向均隨機，並設定前 10 步採用隨機方向
         let antCount = parseInt(antCountInput.value);
         if (isNaN(antCount) || antCount < 1) {
           antCount = 1;
@@ -98,7 +98,8 @@
           let newAnt = {
             x: Math.floor(Math.random() * cols),
             y: Math.floor(Math.random() * rows),
-            dir: Math.floor(Math.random() * 4)
+            dir: Math.floor(Math.random() * 4),
+            randomStepsRemaining: 10  // 前 10 步使用隨機方向
           };
           ants.push(newAnt);
         }
@@ -123,7 +124,7 @@
         if (grid[i][j] === 1) {
           ctx.fillStyle = getColorForTime();
         } else {
-          ctx.fillStyle = '#000'; // 與背景同為純黑
+          ctx.fillStyle = '#000';
         }
         ctx.fillRect(i * cellSize, j * cellSize, cellSize, cellSize);
       }
@@ -139,25 +140,29 @@
 
       // ========== 模擬邏輯：更新所有螞蟻狀態 ==========
       function update() {
-        // 對陣列中每一隻螞蟻進行更新
+        // 對每隻螞蟻進行更新
         ants.forEach(ant => {
-          // 1. 根據螞蟻所在格子的顏色決定轉向
           let currentColor = grid[ant.x][ant.y];
-          if (currentColor === 0) {
-            // 白 -> 右轉
-            ant.dir = (ant.dir + 1) % 4;
+          // 若該隻螞蟻仍處於前 10 步隨機模式，則採用隨機方向
+          if (ant.randomStepsRemaining > 0) {
+            ant.dir = Math.floor(Math.random() * 4);
+            ant.randomStepsRemaining--;
           } else {
-            // 黑 -> 左轉
-            ant.dir = (ant.dir + 3) % 4;
+            // 否則依照原本規則進行轉向：白格右轉、黑格左轉
+            if (currentColor === 0) {
+              ant.dir = (ant.dir + 1) % 4;
+            } else {
+              ant.dir = (ant.dir + 3) % 4;
+            }
           }
   
-          // 2. 翻轉目前格子的狀態（0 -> 1, 1 -> 0）
+          // 翻轉目前格子的狀態（0 -> 1, 1 -> 0）
           grid[ant.x][ant.y] = 1 - currentColor;
   
-          // 3. 重新繪製該格子
+          // 重新繪製該格子
           drawCell(ant.x, ant.y);
   
-          // 4. 根據方向移動一格
+          // 根據方向移動一格
           if (ant.dir === 0) {
             ant.y -= 1; // 向上
           } else if (ant.dir === 1) {
@@ -168,7 +173,7 @@
             ant.x -= 1; // 向左
           }
   
-          // 5. 邊界檢查：若超出範圍則反彈
+          // 邊界檢查：若超出範圍則反彈
           if (ant.x < 0) {
             ant.x = 0;
             if (ant.dir === 3) ant.dir = 1;
@@ -215,11 +220,10 @@
           }
         }, 50);
       }
-
+  
       // ========== 暫停 / 繼續 切換 ==========
       function togglePause() {
         paused = !paused;
-        // 切換按鈕文字
         pauseButton.textContent = paused ? '繼續' : '暫停';
       }
   
