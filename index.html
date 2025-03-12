@@ -173,22 +173,22 @@
             ant.x -= 1; // 向左
           }
   
-          // 邊界檢查：若超出範圍則反彈
+          // 邊界檢查：若超出範圍則修正位置，並增加5步隨機步伐
           if (ant.x < 0) {
             ant.x = 0;
-            if (ant.dir === 3) ant.dir = 1;
+            ant.randomStepsRemaining += 5;  // 遭遇左邊界：增加隨機步數
           }
           if (ant.x >= cols) {
             ant.x = cols - 1;
-            if (ant.dir === 1) ant.dir = 3;
+            ant.randomStepsRemaining += 5;  // 遭遇右邊界：增加隨機步數
           }
           if (ant.y < 0) {
             ant.y = 0;
-            if (ant.dir === 0) ant.dir = 2;
+            ant.randomStepsRemaining += 5;  // 遭遇上邊界：增加隨機步數
           }
           if (ant.y >= rows) {
             ant.y = rows - 1;
-            if (ant.dir === 2) ant.dir = 0;
+            ant.randomStepsRemaining += 5;  // 遭遇下邊界：增加隨機步數
           }
         });
       }
