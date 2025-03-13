@@ -173,7 +173,7 @@
                     rule: chosenRule,
                     ruleTokens: parseRule(chosenRule),
                     positionHistory: [],
-                    stuckCount: 0, // 新增：記錄連續受困次數
+                    stuckCount: 0, // 記錄連續受困次數
                 };
                 ants.push(newAnt);
             }
@@ -346,11 +346,6 @@
                 let currentCell = grid[ant.x][ant.y];
                 let ruleTokens = ant.ruleTokens;
                 let effectiveState = currentCell.isGrayed ? 0 : currentCell.state;
-
-                // 在 state=0 時，增加隨機方向改變的機率，避免規則導致震盪
-                if (effectiveState === 0 && Math.random() < 0.3) {
-                    ant.dir = Math.floor(Math.random() * 4);
-                }
 
                 if (ant.randomStepsRemaining > 0) {
                     ant.dir = Math.floor(Math.random() * 4);
