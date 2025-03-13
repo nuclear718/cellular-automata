@@ -431,7 +431,7 @@
             for (let attempt = 0; attempt < 100; attempt++) {
                 let x = Math.floor(Math.random() * cols);
                 let y = Math.floor(Math.random() * rows);
-                if (grid[x][y].state !== 0) {
+                if (grid[x][y].state === 0) {
                     return { x, y };
                 }
             }
@@ -446,12 +446,9 @@
                 }
                 drawAllDecorations();
                 if (tick % 5000 === 0) {
-                    ctx.filter = 'blur(2px) brightness(1.2)';
+                    ctx.filter = 'blur(2px)';
                     ctx.drawImage(canvas, 0, 0);
                     ctx.filter = 'none';
-
-                    ctx.fillStyle = 'rgba(0, 0, 0, 0.01)';
-                    ctx.fillRect(0, 0, canvas.width, canvas.height);
 
                     let imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
                     let data = imageData.data;
@@ -460,12 +457,13 @@
                         let g = data[i + 1];
                         let b = data[i + 2];
                         let hsl = rgbToHsl(r, g, b);
-                        hsl.s = Math.max(0, hsl.s - 0.05);
+                        hsl.s = Math.max(0, hsl.s - 0.05); // 減少飽和度
+                        hsl.l = Math.max(0, hsl.l - 0.05); // 減少亮度
                         let rgb = hslToRgb(hsl.h, hsl.s, hsl.l);
                         data[i] = rgb.r;
                         data[i + 1] = rgb.g;
                         data[i + 2] = rgb.b;
-                        if (hsl.s < grayThreshold) {
+                        if (hsl.s < grayThreshold && hsl.l < 0.1) {
                             let x = Math.floor((i / 4) % canvas.width / cellSize);
                             let y = Math.floor(Math.floor(i / 4 / canvas.width) / cellSize);
                             if (x >= 0 && x < cols && y >= 0 && y < rows) {
