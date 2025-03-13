@@ -173,6 +173,7 @@
                     rule: chosenRule,
                     ruleTokens: parseRule(chosenRule),
                     positionHistory: [],
+                    stuckCount: 0, // 新增：記錄連續受困次數
                 };
                 ants.push(newAnt);
             }
@@ -345,6 +346,12 @@
                 let currentCell = grid[ant.x][ant.y];
                 let ruleTokens = ant.ruleTokens;
                 let effectiveState = currentCell.isGrayed ? 0 : currentCell.state;
+
+                // 在 state=0 時，增加隨機方向改變的機率，避免規則導致震盪
+                if (effectiveState === 0 && Math.random() < 0.3) {
+                    ant.dir = Math.floor(Math.random() * 4);
+                }
+
                 if (ant.randomStepsRemaining > 0) {
                     ant.dir = Math.floor(Math.random() * 4);
                     ant.randomStepsRemaining--;
@@ -368,6 +375,7 @@
                             break;
                     }
                 }
+
                 let newState = (effectiveState + 1) % ruleTokens.length;
                 if (newState === 0) {
                     grid[ant.x][ant.y] = { state: newState, color: null, antIndex: null, isGrayed: currentCell.isGrayed };
@@ -389,11 +397,18 @@
                 // 每1000步檢查是否受困
                 if (tick % 1000 === 0) {
                     if (isStuck(ant)) {
-                        ant.dir = Math.floor(Math.random() * 4);
-                        let newPos = findNewPosition();
-                        ant.x = newPos.x;
-                        ant.y = newPos.y;
-                        ant.positionHistory = [];
+                        ant.stuckCount++;
+                        if (ant.stuckCount >= 2) { // 連續受困2次後才重新投放
+                            ant.dir = Math.floor(Math.random() * 4);
+                            let newPos = findNewPosition();
+                            ant.x = newPos.x;
+                            ant.y = newPos.y;
+                            ant.positionHistory = [];
+                            ant.randomStepsRemaining = 10; // 重置隨機步數
+                            ant.stuckCount = 0; // 重置受困計數
+                        }
+                    } else {
+                        ant.stuckCount = 0; // 如果未受困，重置計數
                     }
                 }
 
@@ -429,8 +444,8 @@
 
         function findNewPosition() {
             for (let attempt = 0; attempt < 100; attempt++) {
-                let x = Math.floor(Math.random() * cols);
-                let y = Math.floor(Math.random() * rows);
+                let x = Math.floor(Math.random() * (cols - 10)) + 5; // 避免選擇太靠近邊界的點
+                let y = Math.floor(Math.random() * (rows - 10)) + 5;
                 if (grid[x][y].state === 0) {
                     return { x, y };
                 }
@@ -457,8 +472,8 @@
                         let g = data[i + 1];
                         let b = data[i + 2];
                         let hsl = rgbToHsl(r, g, b);
-                        hsl.s = Math.max(0, hsl.s - 0.05); // 減少飽和度
-                        hsl.l = Math.max(0, hsl.l - 0.05); // 減少亮度
+                        hsl.s = Math.max(0, hsl.s - 0.05);
+                        hsl.l = Math.max(0, hsl.l - 0.05);
                         let rgb = hslToRgb(hsl.h, hsl.s, hsl.l);
                         data[i] = rgb.r;
                         data[i + 1] = rgb.g;
