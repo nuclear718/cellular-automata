@@ -191,7 +191,7 @@
             for (let i = 0; i < antCount; i++) {
                 let chosenRule = rules[Math.floor(Math.random() * rules.length)];
                 let baseHue = Math.floor(Math.random() * 360); // 基礎色相
-                let hueRange = 30; // 色相範圍 ±30度
+                let hueRange = 19; // 色相範圍縮小為19度（24度的80%）
                 let newAnt = {
                     x: Math.floor(cols / 4 + Math.random() * cols / 2),
                     y: Math.floor(rows / 4 + Math.random() * rows / 2),
@@ -205,9 +205,9 @@
                     decorationColor: `hsl(${baseHue}, 100%, 50%)`,
                     rule: chosenRule,
                     ruleTokens: parseRule(chosenRule),
-                    stuckCounter: 0, // 新增：用於檢測是否被困
-                    lastX: null, // 新增：記錄上一步的位置
-                    lastY: null  // 新增：記錄上一步的位置
+                    stuckCounter: 0, // 用於檢測是否被困
+                    lastX: null, // 記錄上一步的位置
+                    lastY: null  // 記錄上一步的位置
                 };
                 ants.push(newAnt);
             }
@@ -452,7 +452,7 @@
                 } else {
                     ant.stuckCounter = 0;
                 }
-                if (ant.stuckCounter > 10000) {
+                if (ant.stuckCounter > 100) {
                     // 強制脫困：隨機改變方向並移動到新位置
                     ant.dir = Math.floor(Math.random() * 4);
                     ant.x = Math.floor(Math.random() * cols);
