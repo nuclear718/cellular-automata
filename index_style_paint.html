@@ -190,16 +190,19 @@
             ];
             for (let i = 0; i < antCount; i++) {
                 let chosenRule = rules[Math.floor(Math.random() * rules.length)];
+                let baseHue = Math.floor(Math.random() * 360); // 基礎色相
+                let hueRange = 30; // 色相範圍 ±30度
                 let newAnt = {
                     x: Math.floor(cols / 4 + Math.random() * cols / 2),
                     y: Math.floor(rows / 4 + Math.random() * rows / 2),
                     dir: Math.floor(Math.random() * 4),
                     randomStepsRemaining: 10,
-                    hueOffset: Math.floor(Math.random() * 360),
+                    baseHue: baseHue,
+                    hueRange: hueRange,
                     trackStyle: trackStyles[Math.floor(Math.random() * trackStyles.length)],
                     decorationStyle: decorationStyles[Math.floor(Math.random() * decorationStyles.length)],
                     decorationDiameter: Math.floor((2 + Math.random()) * cellSize),
-                    decorationColor: `hsl(${Math.floor(Math.random() * 360)}, 100%, 50%)`,
+                    decorationColor: `hsl(${baseHue}, 100%, 50%)`,
                     rule: chosenRule,
                     ruleTokens: parseRule(chosenRule)
                 };
@@ -233,7 +236,7 @@
                 ctx.fillRect(x - glowRadius + cellSize / 2, y - glowRadius + cellSize / 2, glowRadius * 2, glowRadius * 2);
                 ctx.restore();
 
-                let hue = (parseInt(color.match(/\d+/)[0]) + Math.random() * 10 - 5) % 360;
+                let hue = (ant.baseHue + Math.random() * ant.hueRange * 2 - ant.hueRange) % 360;
                 let saturation = 70 + Math.random() * 30;
                 let lightness = 40 + Math.random() * 30;
                 let colorVariation = `hsl(${hue}, ${saturation}%, ${lightness}%)`;
@@ -406,7 +409,7 @@
                 if (newState === 0) {
                     grid[ant.x][ant.y] = { state: newState, color: null, antIndex: null };
                 } else {
-                    let hue = ((tick % 2400) / 2400 * 360 + ant.hueOffset) % 360;
+                    let hue = (ant.baseHue + Math.random() * ant.hueRange * 2 - ant.hueRange) % 360;
                     let saturation = 70 + Math.random() * 30;
                     let lightness = 40 + Math.random() * 30;
                     let color = `hsl(${hue}, ${saturation}%, ${lightness}%)`;
@@ -437,7 +440,7 @@
 
                 let others = ants.filter(a => a !== ant && a.x === ant.x && a.y === ant.y);
                 if (others.length > 0) {
-                    ant.hueOffset = (ant.hueOffset + 180) % 360;
+                    ant.baseHue = (ant.baseHue + 180) % 360;
                     ant.randomStepsRemaining += 10;
                 }
             });
@@ -452,9 +455,28 @@
                 }
                 drawAllDecorations();
                 if (tick % 1000 === 0) {
+                    // 應用模糊和亮度濾鏡
                     ctx.filter = 'blur(2px) brightness(1.2)';
                     ctx.drawImage(canvas, 0, 0);
                     ctx.filter = 'none';
+
+                    // 繪製半透明黑色矩形，模擬淡出
+                    ctx.fillStyle = 'rgba(0, 0, 0, 0.01)';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                    // 模擬降低彩度（灰階效果）
+                    let imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                    let data = imageData.data;
+                    for (let i = 0; i < data.length; i += 4) {
+                        let r = data[i];
+                        let g = data[i + 1];
+                        let b = data[i + 2];
+                        let gray = 0.3 * r + 0.59 * g + 0.11 * b;
+                        data[i] = gray;
+                        data[i + 1] = gray;
+                        data[i + 2] = gray;
+                    }
+                    ctx.putImageData(imageData, 0, 0);
                 }
             }
             requestAnimationFrame(simulationStep);
