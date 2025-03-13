@@ -455,7 +455,7 @@
                 } else {
                     ant.stuckCounter = 0;
                 }
-                if (ant.stuckCounter > 15000) {
+                if (ant.stuckCounter > 25000) {
                     // 強制脫困：隨機改變方向並移動到新位置
                     ant.dir = Math.floor(Math.random() * 4);
                     ant.x = Math.floor(Math.random() * cols);
