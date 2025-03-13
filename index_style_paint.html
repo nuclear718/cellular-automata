@@ -204,7 +204,10 @@
                     decorationDiameter: Math.floor((2 + Math.random()) * cellSize),
                     decorationColor: `hsl(${baseHue}, 100%, 50%)`,
                     rule: chosenRule,
-                    ruleTokens: parseRule(chosenRule)
+                    ruleTokens: parseRule(chosenRule),
+                    stuckCounter: 0, // 新增：用於檢測是否被困
+                    lastX: null, // 新增：記錄上一步的位置
+                    lastY: null  // 新增：記錄上一步的位置
                 };
                 ants.push(newAnt);
             }
@@ -416,6 +419,11 @@
                     grid[ant.x][ant.y] = { state: newState, color: color, antIndex: index };
                 }
                 drawCell(ant.x, ant.y);
+
+                // 記錄上一步位置
+                ant.lastX = ant.x;
+                ant.lastY = ant.y;
+
                 if (ant.dir === 0) ant.y -= 1;
                 else if (ant.dir === 1) ant.x += 1;
                 else if (ant.dir === 2) ant.y += 1;
@@ -438,9 +446,25 @@
                     ant.dir = (ant.dir + 2) % 4;
                 }
 
+                // 檢測是否被困
+                if (Math.abs(ant.x - ant.lastX) <= 1 && Math.abs(ant.y - ant.lastY) <= 1) {
+                    ant.stuckCounter++;
+                } else {
+                    ant.stuckCounter = 0;
+                }
+                if (ant.stuckCounter > 100) {
+                    // 強制脫困：隨機改變方向並移動到新位置
+                    ant.dir = Math.floor(Math.random() * 4);
+                    ant.x = Math.floor(Math.random() * cols);
+                    ant.y = Math.floor(Math.random() * rows);
+                    ant.stuckCounter = 0;
+                }
+
+                // 檢測碰撞並輕微調整顏色
                 let others = ants.filter(a => a !== ant && a.x === ant.x && a.y === ant.y);
                 if (others.length > 0) {
-                    ant.baseHue = (ant.baseHue + 180) % 360;
+                    // 在色域範圍內輕微調整 baseHue
+                    ant.baseHue = (ant.baseHue + Math.random() * ant.hueRange * 2 - ant.hueRange) % 360;
                     ant.randomStepsRemaining += 10;
                 }
             });
@@ -454,17 +478,15 @@
                     update();
                 }
                 drawAllDecorations();
-                if (tick % 5000 === 0) { // 每5000步觸發一次後期處理
-                    // 應用模糊和亮度濾鏡
+                if (tick % 5000 === 0) {
+                    // 後期處理邏輯（保持不變）
                     ctx.filter = 'blur(2px) brightness(1.2)';
                     ctx.drawImage(canvas, 0, 0);
                     ctx.filter = 'none';
 
-                    // 繪製半透明黑色矩形，模擬淡出
                     ctx.fillStyle = 'rgba(0, 0, 0, 0.01)';
                     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-                    // 漸進式降低彩度
                     let imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
                     let data = imageData.data;
                     for (let i = 0; i < data.length; i += 4) {
@@ -472,7 +494,7 @@
                         let g = data[i + 1];
                         let b = data[i + 2];
                         let hsl = rgbToHsl(r, g, b);
-                        hsl.s = Math.max(0, hsl.s - 0.05); // 每次降低5%的飽和度
+                        hsl.s = Math.max(0, hsl.s - 0.05);
                         let rgb = hslToRgb(hsl.h, hsl.s, hsl.l);
                         data[i] = rgb.r;
                         data[i + 1] = rgb.g;
