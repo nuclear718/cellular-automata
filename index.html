@@ -458,11 +458,23 @@
                     update();
                 }
                 drawAllDecorations();
+
                 if (tick % 5000 === 0) {
+                    // 建立離螢幕 canvas，避免直接從主 canvas 畫自己
+                    let offscreen = document.createElement('canvas');
+                    offscreen.width = canvas.width;
+                    offscreen.height = canvas.height;
+                    let offscreenCtx = offscreen.getContext('2d');
+
+                    // 將主 canvas 內容複製到離螢幕 canvas
+                    offscreenCtx.drawImage(canvas, 0, 0);
+
+                    // 設定模糊濾鏡，並以離螢幕 canvas 為來源來繪製模糊效果
                     ctx.filter = 'blur(2px)';
-                    ctx.drawImage(canvas, 0, 0);
+                    ctx.drawImage(offscreen, 0, 0);
                     ctx.filter = 'none';
 
+                    // 取得畫面資料並進行色彩處理
                     let imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
                     let data = imageData.data;
                     for (let i = 0; i < data.length; i += 4) {
