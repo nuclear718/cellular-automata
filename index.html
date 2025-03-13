@@ -4,32 +4,25 @@
     <meta charset="utf-8">
     <title>Langton's Ant - 抽象藝術版</title>
     <style>
-        /* 讓整個頁面背景為純黑、並將內容置中 */
         html, body {
             margin: 0;
             padding: 0;
             width: 100%;
             height: 100%;
-            background-color: #000; /* 黑色背景 */
+            background-color: #000;
             color: #fff;
             text-align: center;
             font-family: Arial, sans-serif;
         }
-
-        /* 標題樣式 */
         #gameTitle {
             font-size: 2.5rem;
             margin-top: 2rem;
             color: #ffcc00;
             text-shadow: 2px 2px 4px #fff;
         }
-
-        /* 按鈕容器 */
         #buttonContainer {
             margin-top: 1rem;
         }
-
-        /* 按鈕與輸入欄位樣式 */
         button, input {
             margin: 0.5rem;
             padding: 0.5rem 1rem;
@@ -39,47 +32,36 @@
             cursor: pointer;
             transition: background 0.3s ease;
         }
-
         button {
             background: linear-gradient(45deg, #ff6b6b, #feca57);
             color: #fff;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
         }
-
         button:hover {
             background: linear-gradient(45deg, #ff8787, #ffd066);
         }
-
         input {
             width: 60px;
             background-color: #333;
             color: #fff;
             border: 1px solid #555;
         }
-
-        /* 螞蟻數量限制說明文字 */
         #antLimitText {
             font-size: 0.9rem;
             color: #ccc;
         }
-
-        /* 主要容器置中，並利用 relative 定位以便疊加 canvas */
         #canvasContainer {
             position: relative;
             display: none;
             width: 100vw;
             height: 100vh;
         }
-
-        /* 主 canvas 置中顯示，並有白色邊框 */
         #canvas {
             border: 1px solid #fff;
             display: block;
             width: 100%;
             height: 100%;
         }
-
-        /* 裝飾 canvas 採用絕對定位，位於主 canvas 上方，不接收滑鼠事件 */
         #decorationCanvas {
             position: absolute;
             top: 0;
@@ -91,25 +73,19 @@
     </style>
 </head>
 <body>
-    <!-- 遊戲標題 -->
     <h1 id="gameTitle">Langton's Ant - 抽象藝術版</h1>
-
-    <!-- 按鈕容器 -->
     <div id="buttonContainer">
         <button id="startButton">開始</button>
         <input id="antCountInput" type="number" min="1" max="100" value="1">
         <span id="antLimitText">（螞蟻數量最多100隻）</span>
         <button id="pauseButton" style="display:none;">暫停</button>
     </div>
-
-    <!-- 主 canvas 與裝飾 canvas 包含於同一容器內 -->
     <div id="canvasContainer">
         <canvas id="canvas"></canvas>
         <canvas id="decorationCanvas"></canvas>
     </div>
 
     <script>
-        // ========== 全域變數宣告 ==========
         let canvas = document.getElementById('canvas');
         let ctx = canvas.getContext('2d');
         let decorationCanvas = document.getElementById('decorationCanvas');
@@ -121,24 +97,17 @@
         let gameTitle = document.getElementById('gameTitle');
         let buttonContainer = document.getElementById('buttonContainer');
 
-        // 每個格子的尺寸（以像素為單位）
         let cellSize = 5;
-        // cols、rows 為網格的總行數與列數
         let cols, rows;
-        // grid 用來存放每格的狀態
         let grid = [];
-        // 螞蟻陣列
         let ants = [];
-        // tick 計數器，用於追踪模擬步數
         let tick = 0;
-        // 控制是否暫停
         let paused = false;
-        // 每一幀內更新次數（調整為每幀更新3次）
         const updatesPerFrame = 3;
-        // 灰階化閾值（飽和度低於此值時視為灰階化）
         const grayThreshold = 0.1;
+        const historySteps = 1000;
+        const stuckRange = 5;
 
-        // ========== 解析規則字串為 tokens ==========
         function parseRule(ruleString) {
             let tokens = [];
             for (let i = 0; i < ruleString.length;) {
@@ -163,7 +132,6 @@
             return tokens;
         }
 
-        // ========== 初始化 Canvas 與網格 ==========
         function initCanvas() {
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
@@ -179,10 +147,7 @@
                 }
             }
 
-            // 建立螞蟻物件
-            let antCount = parseInt(antCountInput.value);
-            if (isNaN(antCount) || antCount < 1) antCount = 1;
-            else if (antCount > 100) antCount = 100;
+            let antCount = Math.min(Math.max(parseInt(antCountInput.value), 1), 100);
             ants = [];
             const trackStyles = ['filled_rect', 'hollow_rect', 'filled_circle', 'hollow_circle', 'filled_diamond', 'hollow_diamond', 'glow', 'irregular'];
             const decorationStyles = ["solid", "dashed", "double", "dotted"];
@@ -192,8 +157,8 @@
             ];
             for (let i = 0; i < antCount; i++) {
                 let chosenRule = rules[Math.floor(Math.random() * rules.length)];
-                let baseHue = Math.floor(Math.random() * 360); // 基礎色相
-                let hueRange = 19; // 色相範圍縮小為19度（24度的80%）
+                let baseHue = Math.floor(Math.random() * 360);
+                let hueRange = 19;
                 let newAnt = {
                     x: Math.floor(cols / 4 + Math.random() * cols / 2),
                     y: Math.floor(rows / 4 + Math.random() * rows / 2),
@@ -207,19 +172,15 @@
                     decorationColor: `hsl(${baseHue}, 100%, 50%)`,
                     rule: chosenRule,
                     ruleTokens: parseRule(chosenRule),
-                    stuckCounter: 0, // 用於檢測是否被困
-                    lastX: null, // 記錄上一步的位置
-                    lastY: null  // 記錄上一步的位置
+                    positionHistory: [],
                 };
                 ants.push(newAnt);
             }
 
-            // 繪製背景紋理
             ctx.fillStyle = 'rgba(50, 50, 100, 0.1)';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
         }
 
-        // ========== 繪製單一格子 ==========
         function drawCell(i, j) {
             let cell = grid[i][j];
             if (cell.state === 0 && !cell.isGrayed) {
@@ -314,7 +275,6 @@
             }
         }
 
-        // ========== 繪製整個網格 ==========
         function drawGrid() {
             for (let i = 0; i < cols; i++) {
                 for (let j = 0; j < rows; j++) {
@@ -323,7 +283,6 @@
             }
         }
 
-        // ========== 繪製單一螞蟻的裝飾圈 ==========
         function drawDecoration(context, ant) {
             let cx = ant.x * cellSize + cellSize / 2;
             let cy = ant.y * cellSize + cellSize / 2;
@@ -373,7 +332,6 @@
             context.restore();
         }
 
-        // ========== 繪製所有螞蟻的裝飾圈 ==========
         function drawAllDecorations() {
             dctx.clearRect(0, 0, decorationCanvas.width, decorationCanvas.height);
             ants.forEach(ant => {
@@ -382,7 +340,6 @@
             });
         }
 
-        // ========== 模擬邏輯：更新所有螞蟻狀態 ==========
         function update() {
             ants.forEach((ant, index) => {
                 let currentCell = grid[ant.x][ant.y];
@@ -423,57 +380,64 @@
                 }
                 drawCell(ant.x, ant.y);
 
-                // 記錄上一步位置
-                ant.lastX = ant.x;
-                ant.lastY = ant.y;
+                // 記錄位置歷史
+                ant.positionHistory.push({ x: ant.x, y: ant.y });
+                if (ant.positionHistory.length > historySteps) {
+                    ant.positionHistory.shift();
+                }
 
+                // 每1000步檢查是否受困
+                if (tick % 1000 === 0) {
+                    if (isStuck(ant)) {
+                        ant.dir = Math.floor(Math.random() * 4);
+                        let newPos = findNewPosition();
+                        ant.x = newPos.x;
+                        ant.y = newPos.y;
+                        ant.positionHistory = [];
+                    }
+                }
+
+                // 移動螞蟻
                 if (ant.dir === 0) ant.y -= 1;
                 else if (ant.dir === 1) ant.x += 1;
                 else if (ant.dir === 2) ant.y += 1;
                 else if (ant.dir === 3) ant.x -= 1;
 
-                if (ant.x < 0) {
-                    ant.x = 0;
-                    ant.dir = (ant.dir + 2) % 4;
-                }
-                if (ant.x >= cols) {
-                    ant.x = cols - 1;
-                    ant.dir = (ant.dir + 2) % 4;
-                }
-                if (ant.y < 0) {
-                    ant.y = 0;
-                    ant.dir = (ant.dir + 2) % 4;
-                }
-                if (ant.y >= rows) {
-                    ant.y = rows - 1;
-                    ant.dir = (ant.dir + 2) % 4;
-                }
+                // 邊界處理
+                if (ant.x < 0) { ant.x = 0; ant.dir = (ant.dir + 2) % 4; }
+                if (ant.x >= cols) { ant.x = cols - 1; ant.dir = (ant.dir + 2) % 4; }
+                if (ant.y < 0) { ant.y = 0; ant.dir = (ant.dir + 2) % 4; }
+                if (ant.y >= rows) { ant.y = rows - 1; ant.dir = (ant.dir + 2) % 4; }
 
-                // 檢測是否被困
-                if (Math.abs(ant.x - ant.lastX) <= 1 && Math.abs(ant.y - ant.lastY) <= 1) {
-                    ant.stuckCounter++;
-                } else {
-                    ant.stuckCounter = 0;
-                }
-                if (ant.stuckCounter > 25000) {
-                    // 強制脫困：隨機改變方向並移動到新位置
-                    ant.dir = Math.floor(Math.random() * 4);
-                    ant.x = Math.floor(Math.random() * cols);
-                    ant.y = Math.floor(Math.random() * rows);
-                    ant.stuckCounter = 0;
-                }
-
-                // 檢測碰撞並輕微調整顏色
+                // 碰撞處理
                 let others = ants.filter(a => a !== ant && a.x === ant.x && a.y === ant.y);
                 if (others.length > 0) {
-                    // 在色域範圍內輕微調整 baseHue
                     ant.baseHue = (ant.baseHue + Math.random() * ant.hueRange * 2 - ant.hueRange) % 360;
                     ant.randomStepsRemaining += 10;
                 }
             });
         }
 
-        // ========== 模擬迴圈（使用 requestAnimationFrame） ==========
+        function isStuck(ant) {
+            if (ant.positionHistory.length < historySteps) return false;
+            let minX = Math.min(...ant.positionHistory.map(p => p.x));
+            let maxX = Math.max(...ant.positionHistory.map(p => p.x));
+            let minY = Math.min(...ant.positionHistory.map(p => p.y));
+            let maxY = Math.max(...ant.positionHistory.map(p => p.y));
+            return (maxX - minX <= stuckRange) && (maxY - minY <= stuckRange);
+        }
+
+        function findNewPosition() {
+            for (let attempt = 0; attempt < 100; attempt++) {
+                let x = Math.floor(Math.random() * cols);
+                let y = Math.floor(Math.random() * rows);
+                if (grid[x][y].state !== 0) {
+                    return { x, y };
+                }
+            }
+            return { x: Math.floor(Math.random() * cols), y: Math.floor(Math.random() * rows) };
+        }
+
         function simulationStep() {
             if (!paused) {
                 tick++;
@@ -482,7 +446,6 @@
                 }
                 drawAllDecorations();
                 if (tick % 5000 === 0) {
-                    // 後期處理邏輯
                     ctx.filter = 'blur(2px) brightness(1.2)';
                     ctx.drawImage(canvas, 0, 0);
                     ctx.filter = 'none';
@@ -502,7 +465,6 @@
                         data[i] = rgb.r;
                         data[i + 1] = rgb.g;
                         data[i + 2] = rgb.b;
-                        // 標記灰階化方格
                         if (hsl.s < grayThreshold) {
                             let x = Math.floor((i / 4) % canvas.width / cellSize);
                             let y = Math.floor(Math.floor(i / 4 / canvas.width) / cellSize);
@@ -517,7 +479,6 @@
             requestAnimationFrame(simulationStep);
         }
 
-        // 輔助函數：RGB 轉 HSL
         function rgbToHsl(r, g, b) {
             r /= 255, g /= 255, b /= 255;
             let max = Math.max(r, g, b), min = Math.min(r, g, b);
@@ -537,7 +498,6 @@
             return { h, s, l };
         }
 
-        // 輔助函數：HSL 轉 RGB
         function hslToRgb(h, s, l) {
             let r, g, b;
             if (s === 0) {
@@ -560,7 +520,6 @@
             return { r: Math.round(r * 255), g: Math.round(g * 255), b: Math.round(b * 255) };
         }
 
-        // ========== 開始模擬 ==========
         function startSimulation() {
             gameTitle.style.display = 'none';
             startButton.style.display = 'none';
@@ -576,7 +535,6 @@
             simulationStep();
         }
 
-        // ========== 暫停 / 繼續 ==========
         function togglePause() {
             paused = !paused;
             pauseButton.textContent = paused ? '繼續' : '暫停';
