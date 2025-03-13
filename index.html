@@ -106,7 +106,6 @@
         const updatesPerFrame = 3;
         const grayThreshold = 0.1;
         const historySteps = 1000;
-        const stuckRange = 5;
 
         function parseRule(ruleString) {
             let tokens = [];
@@ -173,7 +172,7 @@
                     rule: chosenRule,
                     ruleTokens: parseRule(chosenRule),
                     positionHistory: [],
-                    stuckCount: 0, // 記錄連續受困次數
+                    stuckCount: 0,
                 };
                 ants.push(newAnt);
             }
@@ -276,14 +275,6 @@
             }
         }
 
-        function drawGrid() {
-            for (let i = 0; i < cols; i++) {
-                for (let j = 0; j < rows; j++) {
-                    drawCell(i, j);
-                }
-            }
-        }
-
         function drawDecoration(context, ant) {
             let cx = ant.x * cellSize + cellSize / 2;
             let cy = ant.y * cellSize + cellSize / 2;
@@ -341,6 +332,40 @@
             });
         }
 
+        function findNewPosition() {
+            for (let attempt = 0; attempt < 100; attempt++) {
+                let x = Math.floor(Math.random() * (cols - 10)) + 5;
+                let y = Math.floor(Math.random() * (rows - 10)) + 5;
+                if (grid[x][y].state === 0 && !grid[x][y].isGrayed) {
+                    return { x, y };
+                }
+            }
+            for (let attempt = 0; attempt < 100; attempt++) {
+                let x = Math.floor(Math.random() * cols);
+                let y = Math.floor(Math.random() * rows);
+                if (!grid[x][y].isGrayed) {
+                    return { x, y };
+                }
+            }
+            return { x: Math.floor(Math.random() * cols), y: Math.floor(Math.random() * rows) };
+        }
+
+        function isStuck(ant) {
+            if (ant.positionHistory.length < historySteps) return false;
+            let positions = ant.positionHistory.map(p => `${p.x},${p.y}`);
+            let uniquePositions = new Set(positions);
+            return uniquePositions.size < 10;
+        }
+
+        function drawFlash(x, y) {
+            let flashSize = cellSize * 2;
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+            ctx.fillRect(x * cellSize - flashSize / 2, y * cellSize - flashSize / 2, flashSize, flashSize);
+            setTimeout(() => {
+                drawCell(x, y);
+            }, 100);
+        }
+
         function update() {
             ants.forEach((ant, index) => {
                 let currentCell = grid[ant.x][ant.y];
@@ -381,71 +406,49 @@
                     let color = `hsl(${hue}, ${saturation}%, ${lightness}%)`;
                     grid[ant.x][ant.y] = { state: newState, color: color, antIndex: index, isGrayed: currentCell.isGrayed };
                 }
-                drawCell(ant.x, ant.y);
+                drawCell(ant.x, ant.y); // 繪製離開的單元格
 
-                // 記錄位置歷史
                 ant.positionHistory.push({ x: ant.x, y: ant.y });
                 if (ant.positionHistory.length > historySteps) {
                     ant.positionHistory.shift();
                 }
 
-                // 每1000步檢查是否受困
                 if (tick % 1000 === 0) {
                     if (isStuck(ant)) {
                         ant.stuckCount++;
-                        if (ant.stuckCount >= 2) { // 連續受困2次後才重新投放
+                        if (ant.stuckCount >= 2) {
                             ant.dir = Math.floor(Math.random() * 4);
                             let newPos = findNewPosition();
                             ant.x = newPos.x;
                             ant.y = newPos.y;
                             ant.positionHistory = [];
-                            ant.randomStepsRemaining = 10; // 重置隨機步數
-                            ant.stuckCount = 0; // 重置受困計數
+                            ant.randomStepsRemaining = 10;
+                            ant.stuckCount = 0;
+                            drawFlash(ant.x, ant.y); // 重新部署時繪製閃爍效果
                         }
                     } else {
-                        ant.stuckCount = 0; // 如果未受困，重置計數
+                        ant.stuckCount = 0;
                     }
                 }
 
-                // 移動螞蟻
                 if (ant.dir === 0) ant.y -= 1;
                 else if (ant.dir === 1) ant.x += 1;
                 else if (ant.dir === 2) ant.y += 1;
                 else if (ant.dir === 3) ant.x -= 1;
 
-                // 邊界處理
                 if (ant.x < 0) { ant.x = 0; ant.dir = (ant.dir + 2) % 4; }
                 if (ant.x >= cols) { ant.x = cols - 1; ant.dir = (ant.dir + 2) % 4; }
                 if (ant.y < 0) { ant.y = 0; ant.dir = (ant.dir + 2) % 4; }
                 if (ant.y >= rows) { ant.y = rows - 1; ant.dir = (ant.dir + 2) % 4; }
 
-                // 碰撞處理
+                drawCell(ant.x, ant.y); // 繪製到達的單元格
+
                 let others = ants.filter(a => a !== ant && a.x === ant.x && a.y === ant.y);
                 if (others.length > 0) {
                     ant.baseHue = (ant.baseHue + Math.random() * ant.hueRange * 2 - ant.hueRange) % 360;
                     ant.randomStepsRemaining += 10;
                 }
             });
-        }
-
-        function isStuck(ant) {
-            if (ant.positionHistory.length < historySteps) return false;
-            let minX = Math.min(...ant.positionHistory.map(p => p.x));
-            let maxX = Math.max(...ant.positionHistory.map(p => p.x));
-            let minY = Math.min(...ant.positionHistory.map(p => p.y));
-            let maxY = Math.max(...ant.positionHistory.map(p => p.y));
-            return (maxX - minX <= stuckRange) && (maxY - minY <= stuckRange);
-        }
-
-        function findNewPosition() {
-            for (let attempt = 0; attempt < 100; attempt++) {
-                let x = Math.floor(Math.random() * (cols - 10)) + 5; // 避免選擇太靠近邊界的點
-                let y = Math.floor(Math.random() * (rows - 10)) + 5;
-                if (grid[x][y].state === 0) {
-                    return { x, y };
-                }
-            }
-            return { x: Math.floor(Math.random() * cols), y: Math.floor(Math.random() * rows) };
         }
 
         function simulationStep() {
@@ -473,10 +476,15 @@
                         data[i] = rgb.r;
                         data[i + 1] = rgb.g;
                         data[i + 2] = rgb.b;
-                        if (hsl.s < grayThreshold && hsl.l < 0.1) {
-                            let x = Math.floor((i / 4) % canvas.width / cellSize);
-                            let y = Math.floor(Math.floor(i / 4 / canvas.width) / cellSize);
-                            if (x >= 0 && x < cols && y >= 0 && y < rows) {
+
+                        let x = Math.floor((i / 4) % canvas.width / cellSize);
+                        let y = Math.floor(Math.floor(i / 4 / canvas.width) / cellSize);
+                        if (x >= 0 && x < cols && y >= 0 && y < rows) {
+                            if (hsl.l === 0) { // 全黑色時重置
+                                grid[x][y].isGrayed = false;
+                                grid[x][y].state = 0;
+                                grid[x][y].color = null;
+                            } else if (hsl.s < grayThreshold && hsl.l < 0.1) {
                                 grid[x][y].isGrayed = true;
                             }
                         }
@@ -538,7 +546,11 @@
             document.body.appendChild(buttonContainer);
 
             initCanvas();
-            drawGrid();
+            for (let i = 0; i < cols; i++) {
+                for (let j = 0; j < rows; j++) {
+                    drawCell(i, j);
+                }
+            }
             tick = 0;
             simulationStep();
         }
