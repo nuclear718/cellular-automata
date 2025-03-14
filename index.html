@@ -25,37 +25,34 @@
       overflow: hidden; /* 移除捲動條 */
     }
 
-    /* 標題容器 - 置於頂部 */
-    .header {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      text-align: center;
-      padding: 20px;
-      z-index: 1; /* 在粒子特效之上 */
-    }
-
-    /* 標題文字 */
-    h1 {
-      font-size: 3rem;
-      text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.7);
-    }
-
-    /* 粒子特效容器 - 置於標題下方 */
-    #particles-js {
+    /* 隨機背景容器 */
+    .background-canvas {
       position: fixed;
       top: 0;
       left: 0;
       width: 100%;
       height: 100vh;
-      z-index: 0; /* 在背景之上，標題之下 */
+      background-size: cover;
+      background-repeat: no-repeat;
+      background-position: center;
+      z-index: -3; /* 在最底層 */
     }
 
-    /* 主要內容容器 - 置於粒子特效之上 */
+    /* 半透明遮罩 */
+    .overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100vh;
+      background: rgba(0, 0, 0, 0.3); /* 調整透明度，可設為0.3~0.7 */
+      z-index: -2;
+    }
+
+    /* 主要內容容器 */
     .container {
       position: relative;
-      z-index: 1; /* 在粒子特效之上 */
+      z-index: 0; /* 蓋在背景之上 */
       display: flex;
       flex-direction: column;
       justify-content: center;
@@ -63,6 +60,13 @@
       height: 100vh;
       text-align: center;
       padding: 0 20px;
+    }
+
+    /* 標題文字 */
+    h1 {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+      text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.7);
     }
 
     /* 一般段落 */
@@ -105,80 +109,39 @@
   </style>
 </head>
 <body>
-  <!-- 標題容器 -->
-  <div class="header">
-    <h1>歡迎來到蘭頓螞蟻遊戲！</h1>
-  </div>
-
-  <!-- 粒子特效容器 -->
-  <div id="particles-js"></div>
+  <!-- 隨機背景容器 -->
+  <div class="background-canvas" id="background"></div>
+  <!-- 半透明遮罩 -->
+  <div class="overlay"></div>
 
   <!-- 主要內容 -->
   <div class="container">
+    <h1>歡迎來到蘭頓螞蟻遊戲！</h1>
     <p>探索這個繽紛多彩的細胞自動機世界，體驗螞蟻的奇妙旅程。</p>
     <a href="./game.html" class="btn-start">開始遊戲</a>
     <p>載入遊戲可能需要一些時間，請耐心等候。</p>
   </div>
 
-  <!-- 引入 particles.js -->
-  <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
   <script>
-    /* 粒子特效設定 - 模擬流星效果 */
-    function initParticles() {
-      particlesJS("particles-js", {
-        particles: {
-          number: { value: 30, density: { enable: true, value_area: 800 } },
-          color: { value: ["#ff4d4d", "#00ffff", "#ffff00", "#ff00ff"] },
-          shape: { type: "circle" },
-          opacity: { value: 0.8, random: true },
-          size: { value: 3, random: true },
-          line_linked: { enable: false },
-          move: {
-            enable: true,
-            speed: 15, /* 快速移動模擬流星 */
-            direction: "bottom-right", /* 斜向下移動 */
-            random: true,
-            straight: true, /* 直線移動 */
-            out_mode: "out",
-            bounce: false
-          }
-        },
-        interactivity: {
-          detect_on: "canvas",
-          events: {
-            onhover: { enable: false },
-            onclick: { enable: false },
-            resize: true
-          }
-        },
-        retina_detect: true
-      });
+    /* 隨機背景檔案清單 */
+    const backgroundImages = [
+      "background/b1.png",
+      "background/b2.png",
+      "background/b3.png",
+      "background/b4.png"
+    ];
 
-      /* 自定義流星尾巴效果 */
-      const canvas = document.getElementById("particles-js").getElementsByTagName("canvas")[0];
-      const ctx = canvas.getContext("2d");
-      const particlesArray = window.pJSDom[0].particles.array;
-
-      function drawTails() {
-        ctx.clearRect(0, 0, canvas.width, canvas.height); /* 清除畫布避免重疊 */
-        particlesArray.forEach(particle => {
-          ctx.beginPath();
-          ctx.strokeStyle = particle.color;
-          ctx.lineWidth = particle.radius * 2;
-          ctx.moveTo(particle.x, particle.y);
-          /* 畫出拖尾效果 */
-          ctx.lineTo(particle.x - particle.vx * 10, particle.y - particle.vy * 10);
-          ctx.stroke();
-          ctx.closePath();
-        });
-        requestAnimationFrame(drawTails);
-      }
-      requestAnimationFrame(drawTails);
+    /* 隨機設定背景 */
+    function setRandomBackground() {
+      const randomIndex = Math.floor(Math.random() * backgroundImages.length);
+      const randomImage = backgroundImages[randomIndex];
+      const backgroundElement = document.getElementById("background");
+      backgroundElement.style.backgroundImage = `url(${randomImage})`;
     }
 
     /* DOM 載入後執行 */
     document.addEventListener("DOMContentLoaded", () => {
-      initParticles(); /* 初始化粒子特效 */
+      setRandomBackground(); /* 設定隨機背景 */
     });
   </script>
 </body>
