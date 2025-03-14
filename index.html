@@ -25,61 +25,44 @@
       overflow: hidden; /* 移除捲動條 */
     }
 
-    /* 背景圖片容器 - 限制在上半部 */
-    .background-canvas {
-      position: fixed;
+    /* 標題容器 - 置於頂部 */
+    .header {
+      position: absolute;
       top: 0;
       left: 0;
       width: 100%;
-      height: 50vh; /* 只占螢幕高度一半 */
-      background-size: cover;
-      background-repeat: no-repeat;
-      background-position: center;
-      z-index: -3; /* 最底層 */
+      text-align: center;
+      padding: 20px;
+      z-index: 1; /* 在粒子特效之上 */
     }
 
-    /* 下半部純色背景 - 提高文字可讀性 */
-    .bottom-background {
-      position: fixed;
-      top: 50vh;
-      left: 0;
-      width: 100%;
-      height: 50vh;
-      background: #000; /* 純黑背景 */
-      z-index: -2;
+    /* 標題文字 */
+    h1 {
+      font-size: 3rem;
+      text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.7);
     }
 
-    /* 粒子特效容器 */
+    /* 粒子特效容器 - 置於標題下方 */
     #particles-js {
       position: fixed;
       top: 0;
       left: 0;
       width: 100%;
       height: 100vh;
-      z-index: -1; /* 在背景之上，內容之下 */
+      z-index: 0; /* 在背景之上，標題之下 */
     }
 
-    /* 主要內容容器 - 置於下半部 */
+    /* 主要內容容器 - 置於粒子特效之上 */
     .container {
-      position: absolute;
-      top: 50vh; /* 從螢幕一半開始 */
-      left: 0;
-      width: 100%;
-      height: 50vh; /* 占下半部 */
+      position: relative;
+      z-index: 1; /* 在粒子特效之上 */
       display: flex;
       flex-direction: column;
       justify-content: center;
       align-items: center;
+      height: 100vh;
       text-align: center;
       padding: 0 20px;
-      z-index: 0; /* 在粒子特效之上 */
-    }
-
-    /* 標題文字 */
-    h1 {
-      font-size: 3rem;
-      margin-bottom: 1rem;
-      text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.7);
     }
 
     /* 一般段落 */
@@ -122,16 +105,16 @@
   </style>
 </head>
 <body>
-  <!-- 背景圖片容器 -->
-  <div class="background-canvas" id="background"></div>
-  <!-- 下半部背景 -->
-  <div class="bottom-background"></div>
+  <!-- 標題容器 -->
+  <div class="header">
+    <h1>歡迎來到蘭頓螞蟻遊戲！</h1>
+  </div>
+
   <!-- 粒子特效容器 -->
   <div id="particles-js"></div>
 
   <!-- 主要內容 -->
   <div class="container">
-    <h1>歡迎來到蘭頓螞蟻遊戲！</h1>
     <p>探索這個繽紛多彩的細胞自動機世界，體驗螞蟻的奇妙旅程。</p>
     <a href="./game.html" class="btn-start">開始遊戲</a>
     <p>載入遊戲可能需要一些時間，請耐心等候。</p>
@@ -140,27 +123,6 @@
   <!-- 引入 particles.js -->
   <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
   <script>
-    /* 隨機背景檔案清單 */
-    const backgroundImages = [
-      "background/b1.png",
-      "background/b2.png",
-      "background/b3.png",
-      "background/b4.png"
-    ];
-
-    /* 隨機設定背景 */
-    function setRandomBackground() {
-      const randomIndex = Math.floor(Math.random() * backgroundImages.length);
-      const randomImage = backgroundImages[randomIndex];
-      const backgroundElement = document.getElementById("background");
-      backgroundElement.style.backgroundImage = `url(${randomImage})`;
-
-      /* 隨機截圖效果 */
-      const randomX = Math.floor(Math.random() * 100);
-      const randomY = Math.floor(Math.random() * 100);
-      backgroundElement.style.backgroundPosition = `${randomX}% ${randomY}%`;
-    }
-
     /* 粒子特效設定 - 模擬流星效果 */
     function initParticles() {
       particlesJS("particles-js", {
@@ -216,7 +178,6 @@
 
     /* DOM 載入後執行 */
     document.addEventListener("DOMContentLoaded", () => {
-      setRandomBackground(); /* 設定隨機背景 */
       initParticles(); /* 初始化粒子特效 */
     });
   </script>
