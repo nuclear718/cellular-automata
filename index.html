@@ -1,148 +1,159 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>歡迎來到蘭頓螞蟻遊戲網站</title>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap" rel="stylesheet">
-    <style>
-        body {
-            margin: 0;
-            font-family: 'Montserrat', sans-serif;
-            color: #fff;
-            overflow: hidden; /* 防止滾動條出現 */
-        }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>蘭頓螞蟻遊戲 - 首頁</title>
 
-        /* 背景圖片樣式 */
-        .header-background {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100vh;
-            background-size: cover;
-            background-position: center;
-            z-index: -1; /* 背景置於底層 */
-            transition: background-image 1s ease-in-out;
-        }
+  <!-- 字型（此處以 Google Fonts 為例） -->
+  <link
+    href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap"
+    rel="stylesheet"
+  />
 
-        /* 主內容區域 */
-        .container {
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            text-align: center;
-            position: relative;
-            z-index: 1; /* 內容置於前景 */
-        }
+  <style>
+    /* 基本重置與字型設定 */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: "Montserrat", sans-serif;
+      overflow: hidden; /* 防止捲動條出現 */
+      background: #000; /* 預設黑色背景 */
+      color: #fff;
+    }
 
-        h1 {
-            font-size: 3em;
-            margin: 0;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
-        }
+    /* 全螢幕背景容器 - 可以放置炫彩的動態或靜態背景 */
+    .background-canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100vh;
+      z-index: -2; /* 在最底層 */
+      background: #000; /* 預設為黑色，以免圖片或特效載入時閃白 */
+    }
 
-        p {
-            font-size: 1.2em;
-            margin: 10px 0;
-        }
+    /* 半透明遮罩：使文字更突出、避免被繽紛背景干擾 */
+    .overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100vh;
+      background: rgba(0, 0, 0, 0.3); 
+      /* 可自行調整透明度 0.3~0.7，看你想要的暗度 */
+      z-index: -1; /* 在背景之上，但仍在內容下方 */
+    }
 
-        /* 開始遊戲按鈕 */
-        .game-link {
-            display: inline-block;
-            padding: 15px 30px;
-            background-color: #1E90FF;
-            color: #fff;
-            text-decoration: none;
-            border-radius: 10px;
-            font-size: 1.2em;
-            transition: transform 0.3s, background-color 0.3s;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
-        }
+    /* 主容器：垂直水平置中顯示標題與按鈕 */
+    .container {
+      position: relative;
+      z-index: 1; /* 在 overlay 之上 */
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      text-align: center;
+      padding: 0 20px; /* 避免在小螢幕時文字太貼邊 */
+    }
 
-        .game-link:hover {
-            transform: scale(1.1);
-            background-color: #00BFFF;
-        }
+    h1 {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+      text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.7); 
+      /* 文字陰影，增強對比度 */
+    }
 
-        /* 粒子效果 */
-        #particles-js {
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            z-index: 0; /* 粒子層在背景之上，內容之下 */
-        }
+    p {
+      font-size: 1.2rem;
+      margin-bottom: 2rem;
+      text-shadow: 1px 1px 4px rgba(0, 0, 0, 0.7);
+    }
 
-        /* 響應式設計 */
-        @media (max-width: 768px) {
-            h1 {
-                font-size: 2em;
-            }
-            p {
-                font-size: 1em;
-            }
-            .game-link {
-                padding: 10px 20px;
-                font-size: 1em;
-            }
-        }
-    </style>
+    /* 按鈕樣式 */
+    .btn-start {
+      display: inline-block;
+      padding: 15px 30px;
+      background-color: #ff6347; /* 可換成喜歡的色系 */
+      color: #fff;
+      text-decoration: none;
+      font-size: 1.2rem;
+      border-radius: 8px;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+    }
+    .btn-start:hover {
+      transform: scale(1.08);
+      background-color: #ff8362; /* hover 時可微調顏色 */
+    }
+
+    /* 響應式 - 小螢幕時調整字體 */
+    @media (max-width: 768px) {
+      h1 {
+        font-size: 2rem;
+      }
+      p {
+        font-size: 1rem;
+      }
+      .btn-start {
+        font-size: 1rem;
+        padding: 10px 20px;
+      }
+    }
+  </style>
 </head>
 <body>
-    <div class="header-background" id="background"></div>
-    <div id="particles-js"></div>
-    <div class="container">
-        <h1>歡迎來到蘭頓螞蟻遊戲網站！</h1>
-        <p>探索這個迷人的細胞自動機世界，體驗螞蟻的奇妙旅程。</p>
-        <a href="./game.html" class="game-link">開始遊戲</a>
-        <p>（請注意：遊戲頁面可能需要一些時間載入）</p>
-    </div>
+  <!-- 背景畫面（可以改成動態或 Canvas 特效） -->
+  <div class="background-canvas" id="bgCanvas"></div>
+  <!-- 半透明遮罩 -->
+  <div class="overlay"></div>
 
-    <!-- 引入 particles.js 庫 -->
-    <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
-    <script>
-        // 隨機背景圖片功能
-        const backgroundImages = [
-            "../background/b1.png",
-            "../background/b2.png",
-            "../background/b3.png",
-            "../background/b4.png"
-        ];
+  <!-- 內容區塊 -->
+  <div class="container">
+    <h1>歡迎來到蘭頓螞蟻遊戲！</h1>
+    <p>探索充滿繽紛色彩的細胞自動機世界，體驗螞蟻的奇妙旅程。</p>
+    <a href="./game.html" class="btn-start">開始遊戲</a>
+    <p>遊戲可能需要一些時間載入，請耐心等候</p>
+  </div>
 
-        function setRandomBackground() {
-            const randomIndex = Math.floor(Math.random() * backgroundImages.length);
-            const randomImage = backgroundImages[randomIndex];
-            const backgroundElement = document.getElementById("background");
-            backgroundElement.style.backgroundImage = `url(${randomImage})`;
-            
-            // 隨機設定背景位置，實現截圖效果
-            const randomX = Math.floor(Math.random() * 100);
-            const randomY = Math.floor(Math.random() * 100);
-            backgroundElement.style.backgroundPosition = `${randomX}% ${randomY}%`;
-        }
-
-        // 粒子效果配置
-        particlesJS('particles-js', {
-            particles: {
-                number: { value: 80, density: { enable: true, value_area: 800 } },
-                color: { value: '#ffffff' },
-                shape: { type: 'circle' },
-                opacity: { value: 0.5, random: true },
-                size: { value: 3, random: true },
-                line_linked: { enable: false },
-                move: { enable: true, speed: 1, direction: 'none', random: true, straight: false, out_mode: 'out', bounce: false }
-            },
-            interactivity: {
-                detect_on: 'canvas',
-                events: { onhover: { enable: false }, onclick: { enable: false }, resize: true }
-            },
-            retina_detect: true
-        });
-
-        // 頁面載入時設定隨機背景
-        setRandomBackground();
-    </script>
+  <!-- 若需要使用 particles.js 或其他背景特效，可在此插入 script -->
+  <!-- 以下僅示範如何載入 particles.js，並在 bgCanvas 上執行特效 -->
+  <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
+  <script>
+    // 如果你已經有自己的炫彩背景圖，可以改用 background-image
+    // 這裡示範用 particles.js 做粒子特效
+    particlesJS("bgCanvas", {
+      particles: {
+        number: { value: 100, density: { enable: true, value_area: 800 } },
+        color: { value: ["#ff4d4d", "#00ffff", "#ffff00", "#ff00ff"] },
+        shape: { type: "circle" },
+        opacity: { value: 0.8, random: true },
+        size: { value: 3, random: true },
+        line_linked: { enable: false },
+        move: {
+          enable: true,
+          speed: 1,
+          direction: "none",
+          random: true,
+          straight: false,
+          out_mode: "out",
+          bounce: false,
+        },
+      },
+      interactivity: {
+        detect_on: "canvas",
+        events: {
+          onhover: { enable: false },
+          onclick: { enable: false },
+          resize: true,
+        },
+      },
+      retina_detect: true,
+    });
+  </script>
 </body>
 </html>
