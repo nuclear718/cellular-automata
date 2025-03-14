@@ -1,593 +1,84 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-    <meta charset="utf-8">
-    <title>Langton's Ant - 抽象藝術版</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>歡迎來到遊戲網站</title>
     <style>
-        html, body {
+        body {
+            background-color: #333; /* 深灰色背景 */
             margin: 0;
-            padding: 0;
+            font-family: sans-serif;
+            color: #eee; /* 設定預設文字顏色為淺色 */
+        }
+
+        .header-background {
             width: 100%;
-            height: 100%;
-            background-color: #000;
-            color: #fff;
-            text-align: center;
-            font-family: Arial, sans-serif;
+            height: 33vh; /* 約佔螢幕高度的三分之一 */
+            overflow: hidden; /* 確保圖片裁切後不會超出範圍 */
+            position: relative; /* 讓內部圖片可以絕對定位 */
         }
-        #gameTitle {
-            font-size: 2.5rem;
-            margin-top: 2rem;
-            color: #ffcc00;
-            text-shadow: 2px 2px 4px #fff;
-        }
-        #buttonContainer {
-            margin-top: 1rem;
-        }
-        button, input {
-            margin: 0.5rem;
-            padding: 0.5rem 1rem;
-            font-size: 1rem;
-            border-radius: 5px;
-            border: none;
-            cursor: pointer;
-            transition: background 0.3s ease;
-        }
-        button {
-            background: linear-gradient(45deg, #ff6b6b, #feca57);
-            color: #fff;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
-        }
-        button:hover {
-            background: linear-gradient(45deg, #ff8787, #ffd066);
-        }
-        input {
-            width: 60px;
-            background-color: #333;
-            color: #fff;
-            border: 1px solid #555;
-        }
-        #antLimitText {
-            font-size: 0.9rem;
-            color: #ccc;
-        }
-        #canvasContainer {
-            position: relative;
-            display: none;
-            width: 100vw;
-            height: 100vh;
-        }
-        #canvas {
-            border: 1px solid #fff;
-            display: block;
-            width: 100%;
-            height: 100%;
-        }
-        #decorationCanvas {
+
+        .header-background img {
             position: absolute;
             top: 0;
             left: 0;
-            pointer-events: none;
             width: 100%;
             height: 100%;
+            object-fit: cover; /* 圖片等比例縮放並填滿容器，可能會裁切 */
+        }
+
+        .container {
+            padding: 20px;
+            text-align: center;
+        }
+
+        h1 {
+            margin-top: 20px;
+        }
+
+        .game-link {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #555;
+            color: #fff;
+            text-decoration: none;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+
+        .game-link:hover {
+            background-color: #777;
         }
     </style>
 </head>
 <body>
-    <h1 id="gameTitle">Langton's Ant - 抽象藝術版</h1>
-    <div id="buttonContainer">
-        <button id="startButton">開始</button>
-        <input id="antCountInput" type="number" min="1" max="100" value="1">
-        <span id="antLimitText">（螞蟻數量最多100隻）</span>
-        <button id="pauseButton" style="display:none;">暫停</button>
+    <div class="header-background">
+        <img id="random-background" src="" alt="隨機背景圖片">
     </div>
-    <div id="canvasContainer">
-        <canvas id="canvas"></canvas>
-        <canvas id="decorationCanvas"></canvas>
+
+    <div class="container">
+        <h1>歡迎來到我們的遊戲網站！</h1>
+        <p>在這裡你可以找到各種有趣的網頁遊戲。</p>
+        <a href="./game.html" class="game-link">前往遊戲頁面</a>
+        <p>（請注意：遊戲頁面可能需要一些時間載入）</p>
     </div>
 
     <script>
-        // 取得 DOM 元素
-        let canvas = document.getElementById('canvas');
-        let ctx = canvas.getContext('2d');
-        let decorationCanvas = document.getElementById('decorationCanvas');
-        let dctx = decorationCanvas.getContext('2d');
-        let canvasContainer = document.getElementById('canvasContainer');
-        let startButton = document.getElementById('startButton');
-        let pauseButton = document.getElementById('pauseButton');
-        let antCountInput = document.getElementById('antCountInput');
-        let gameTitle = document.getElementById('gameTitle');
-        let buttonContainer = document.getElementById('buttonContainer');
+        const backgroundImages = [
+            "../background/b1.png",
+            "../background/b2.png",
+            "../background/b3.png",
+            "../background/b4.png"
+        ];
 
-        // 全域參數
-        let cellSize = 5;
-        let cols, rows;
-        let grid = [];
-        let ants = [];
-        let tick = 0;
-        let paused = false;
-        const updatesPerFrame = 3;
-        const historySteps = 1000;
-        const imageProcessInterval = 10000; // 調整為10000以降低影像處理頻率
-
-        // 全域 offscreen canvas 及其 context（重複使用以改善記憶體管理）
-        let offscreenCanvas, offscreenCtx;
-
-        // 解析規則字串（將 'R', 'L', 'N', 'U' 與數字拆解成 tokens）
-        function parseRule(ruleString) {
-            let tokens = [];
-            for (let i = 0; i < ruleString.length;) {
-                let ch = ruleString[i];
-                if ("RLNU".indexOf(ch) !== -1) {
-                    let j = i + 1;
-                    let numStr = "";
-                    while (j < ruleString.length && /\d/.test(ruleString[j])) {
-                        numStr += ruleString[j];
-                        j++;
-                    }
-                    tokens.push(numStr === "" ? ch : ch + numStr);
-                    i = j;
-                } else {
-                    i++;
-                }
-            }
-            return tokens;
+        function getRandomImage(images) {
+            const randomIndex = Math.floor(Math.random() * images.length);
+            return images[randomIndex];
         }
 
-        // 初始化 canvas、grid 與 offscreen canvas
-        function initCanvas() {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-            decorationCanvas.width = canvas.width;
-            decorationCanvas.height = canvas.height;
-            cols = Math.floor(canvas.width / cellSize);
-            rows = Math.floor(canvas.height / cellSize);
-            
-            // 初始化 grid，每個 cell 儲存狀態與顏色
-            grid = [];
-            for (let i = 0; i < cols; i++) {
-                grid[i] = [];
-                for (let j = 0; j < rows; j++) {
-                    grid[i][j] = { state: 0, color: null, antIndex: null };
-                }
-            }
-            
-            // 建立並初始化 offscreen canvas（尺寸＝grid 尺寸，每個 pixel代表一個 cell）
-            offscreenCanvas = document.createElement('canvas');
-            offscreenCanvas.width = cols;
-            offscreenCanvas.height = rows;
-            offscreenCtx = offscreenCanvas.getContext('2d');
-
-            // 初始化螞蟻資料
-            let antCount = Math.min(Math.max(parseInt(antCountInput.value), 1), 100);
-            ants = [];
-            const trackStyles = ['filled_rect', 'hollow_rect', 'filled_circle', 'hollow_circle', 'filled_diamond', 'hollow_diamond', 'glow', 'irregular'];
-            const decorationStyles = ["solid", "dashed", "double", "dotted"];
-            const rules = [
-                "RL", "LLRR", "LRRL", "LRRRRRLLR", "RRLLLRLLLRRR",
-                "L2NNL1L2L1", "L1L2NUL2L1R2", "R2L1N1U1", "RRLLNNLRL"
-            ];
-            for (let i = 0; i < antCount; i++) {
-                let chosenRule = rules[Math.floor(Math.random() * rules.length)];
-                let baseHue = Math.floor(Math.random() * 360);
-                let hueRange = 19;
-                let newAnt = {
-                    x: Math.floor(cols / 4 + Math.random() * cols / 2),
-                    y: Math.floor(rows / 4 + Math.random() * rows / 2),
-                    dir: Math.floor(Math.random() * 4),
-                    randomStepsRemaining: 10,
-                    baseHue: baseHue,
-                    hueRange: hueRange,
-                    trackStyle: trackStyles[Math.floor(Math.random() * trackStyles.length)],
-                    decorationStyle: decorationStyles[Math.floor(Math.random() * decorationStyles.length)],
-                    decorationDiameter: Math.floor((2 + Math.random()) * cellSize),
-                    decorationColor: `hsl(${baseHue}, 100%, 50%)`,
-                    rule: chosenRule,
-                    ruleTokens: parseRule(chosenRule),
-                    positionHistory: [],
-                    stuckCount: 0,
-                };
-                ants.push(newAnt);
-            }
-
-            // 初始背景填充
-            ctx.fillStyle = 'rgba(50, 50, 100, 0.1)';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-        }
-
-        // 根據 grid 狀態繪製單一 cell
-        function drawCell(i, j) {
-            let cell = grid[i][j];
-            let x = i * cellSize;
-            let y = j * cellSize;
-            if (cell.state === 0) {
-                ctx.fillStyle = '#000';
-                ctx.fillRect(x, y, cellSize, cellSize);
-            } else {
-                let ant = ants[cell.antIndex];
-                let color = cell.color;
-                // 繪製光暈效果
-                ctx.save();
-                ctx.globalAlpha = 0.2;
-                let glowRadius = cellSize * 1.5;
-                let gradient = ctx.createRadialGradient(x + cellSize / 2, y + cellSize / 2, 0, x + cellSize / 2, y + cellSize / 2, glowRadius);
-                gradient.addColorStop(0, color);
-                gradient.addColorStop(1, 'transparent');
-                ctx.fillStyle = gradient;
-                ctx.fillRect(x - glowRadius + cellSize / 2, y - glowRadius + cellSize / 2, glowRadius * 2, glowRadius * 2);
-                ctx.restore();
-
-                // 依照螞蟻資料隨機變化色彩
-                let hue = (ant.baseHue + Math.random() * ant.hueRange * 2 - ant.hueRange) % 360;
-                let saturation = 70 + Math.random() * 30;
-                let lightness = 40 + Math.random() * 30;
-                let colorVariation = `hsl(${hue}, ${saturation}%, ${lightness}%)`;
-                ctx.fillStyle = colorVariation;
-                ctx.strokeStyle = colorVariation;
-                ctx.globalCompositeOperation = 'overlay';
-
-                switch (ant.trackStyle) {
-                    case 'filled_rect':
-                        ctx.fillRect(x, y, cellSize, cellSize);
-                        break;
-                    case 'hollow_rect':
-                        ctx.lineWidth = 1;
-                        ctx.beginPath();
-                        ctx.rect(x, y, cellSize, cellSize);
-                        ctx.stroke();
-                        break;
-                    case 'filled_circle':
-                        ctx.beginPath();
-                        ctx.arc(x + cellSize / 2, y + cellSize / 2, cellSize / 2, 0, 2 * Math.PI);
-                        ctx.fill();
-                        break;
-                    case 'hollow_circle':
-                        ctx.lineWidth = 1;
-                        ctx.beginPath();
-                        ctx.arc(x + cellSize / 2, y + cellSize / 2, cellSize / 2, 0, 2 * Math.PI);
-                        ctx.stroke();
-                        break;
-                    case 'filled_diamond':
-                        ctx.beginPath();
-                        ctx.moveTo(x + cellSize / 2, y);
-                        ctx.lineTo(x + cellSize, y + cellSize / 2);
-                        ctx.lineTo(x + cellSize / 2, y + cellSize);
-                        ctx.lineTo(x, y + cellSize / 2);
-                        ctx.closePath();
-                        ctx.fill();
-                        break;
-                    case 'hollow_diamond':
-                        ctx.lineWidth = 1;
-                        ctx.beginPath();
-                        ctx.moveTo(x + cellSize / 2, y);
-                        ctx.lineTo(x + cellSize, y + cellSize / 2);
-                        ctx.lineTo(x + cellSize / 2, y + cellSize);
-                        ctx.lineTo(x, y + cellSize / 2);
-                        ctx.closePath();
-                        ctx.stroke();
-                        break;
-                    case 'glow':
-                        let grad = ctx.createRadialGradient(x + cellSize / 2, y + cellSize / 2, 0, x + cellSize / 2, y + cellSize / 2, cellSize / 2);
-                        grad.addColorStop(0, colorVariation);
-                        grad.addColorStop(1, 'transparent');
-                        ctx.fillStyle = grad;
-                        ctx.fillRect(x, y, cellSize, cellSize);
-                        break;
-                    case 'irregular':
-                        ctx.beginPath();
-                        ctx.moveTo(x + Math.random() * cellSize, y + Math.random() * cellSize);
-                        for (let k = 0; k < 3; k++) {
-                            ctx.lineTo(x + Math.random() * cellSize, y + Math.random() * cellSize);
-                        }
-                        ctx.closePath();
-                        ctx.fill();
-                        break;
-                    default:
-                        ctx.fillRect(x, y, cellSize, cellSize);
-                        break;
-                }
-                ctx.globalCompositeOperation = 'source-over';
-            }
-        }
-
-        // 根據螞蟻資料繪製裝飾圖形
-        function drawDecoration(context, ant) {
-            let cx = ant.x * cellSize + cellSize / 2;
-            let cy = ant.y * cellSize + cellSize / 2;
-            let radius = ant.decorationDiameter / 2;
-            context.save();
-            context.strokeStyle = ant.decorationColor;
-            switch (ant.decorationStyle) {
-                case "solid":
-                    context.lineWidth = 2;
-                    context.setLineDash([]);
-                    context.beginPath();
-                    context.arc(cx, cy, radius, 0, 2 * Math.PI);
-                    context.stroke();
-                    break;
-                case "dashed":
-                    context.lineWidth = 2;
-                    context.setLineDash([4, 4]);
-                    context.beginPath();
-                    context.arc(cx, cy, radius, 0, 2 * Math.PI);
-                    context.stroke();
-                    break;
-                case "double":
-                    context.lineWidth = 1;
-                    context.setLineDash([]);
-                    context.beginPath();
-                    context.arc(cx, cy, radius, 0, 2 * Math.PI);
-                    context.stroke();
-                    context.beginPath();
-                    context.arc(cx, cy, radius + 3, 0, 2 * Math.PI);
-                    context.stroke();
-                    break;
-                case "dotted":
-                    context.lineWidth = 2;
-                    context.setLineDash([1, 3]);
-                    context.beginPath();
-                    context.arc(cx, cy, radius, 0, 2 * Math.PI);
-                    context.stroke();
-                    break;
-                default:
-                    context.lineWidth = 2;
-                    context.setLineDash([]);
-                    context.beginPath();
-                    context.arc(cx, cy, radius, 0, 2 * Math.PI);
-                    context.stroke();
-                    break;
-            }
-            context.restore();
-        }
-
-        // 繪製所有螞蟻的裝飾
-        function drawAllDecorations() {
-            dctx.clearRect(0, 0, decorationCanvas.width, decorationCanvas.height);
-            ants.forEach(ant => {
-                ant.decorationDiameter = cellSize * (2 + Math.sin(tick / 100));
-                drawDecoration(dctx, ant);
-            });
-        }
-
-        // 當螞蟻卡住時，尋找新的位置
-        function findNewPosition() {
-            for (let attempt = 0; attempt < 100; attempt++) {
-                let x = Math.floor(Math.random() * (cols - 10)) + 5;
-                let y = Math.floor(Math.random() * (rows - 10)) + 5;
-                if (grid[x][y].state === 0) {
-                    return { x, y };
-                }
-            }
-            for (let attempt = 0; attempt < 100; attempt++) {
-                let x = Math.floor(Math.random() * cols);
-                let y = Math.floor(Math.random() * rows);
-                if (grid[x][y].state === 0) {
-                    return { x, y };
-                }
-            }
-            return { x: Math.floor(Math.random() * cols), y: Math.floor(Math.random() * rows) };
-        }
-
-        // 判斷螞蟻是否卡住（依據歷史位置）
-        function isStuck(ant) {
-            if (ant.positionHistory.length < historySteps) return false;
-            let positions = ant.positionHistory.map(p => `${p.x},${p.y}`);
-            let uniquePositions = new Set(positions);
-            return uniquePositions.size < 10;
-        }
-
-        // 畫面閃爍效果，重新部署時提示
-        function drawFlash(x, y) {
-            let flashSize = cellSize * 2;
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
-            ctx.fillRect(x * cellSize - flashSize / 2, y * cellSize - flashSize / 2, flashSize, flashSize);
-            setTimeout(() => {
-                drawCell(x, y);
-            }, 100);
-        }
-
-        // 更新每隻螞蟻與 grid 狀態
-        function update() {
-            ants.forEach((ant, index) => {
-                let currentCell = grid[ant.x][ant.y];
-                let ruleTokens = ant.ruleTokens;
-                let effectiveState = currentCell.state;
-
-                if (ant.randomStepsRemaining > 0) {
-                    ant.dir = Math.floor(Math.random() * 4);
-                    ant.randomStepsRemaining--;
-                } else {
-                    let token = ruleTokens[effectiveState % ruleTokens.length];
-                    let count = token.length > 1 ? parseInt(token.slice(1)) : 1;
-                    switch (token[0]) {
-                        case 'R':
-                            ant.dir = (ant.dir + count) % 4;
-                            break;
-                        case 'L':
-                            ant.dir = (ant.dir + 3 * count) % 4;
-                            break;
-                        case 'N':
-                            break;
-                        case 'U':
-                            ant.dir = (ant.dir + 2 * count) % 4;
-                            break;
-                    }
-                }
-
-                let newState = (effectiveState + 1) % ruleTokens.length;
-                if (newState === 0) {
-                    grid[ant.x][ant.y] = { state: newState, color: null, antIndex: null };
-                } else {
-                    let hue = (ant.baseHue + Math.random() * ant.hueRange * 2 - ant.hueRange) % 360;
-                    let saturation = 70 + Math.random() * 30;
-                    let lightness = 40 + Math.random() * 30;
-                    let color = `hsl(${hue}, ${saturation}%, ${lightness}%)`;
-                    grid[ant.x][ant.y] = { state: newState, color: color, antIndex: index };
-                }
-                // 繪製離開前的 cell
-                drawCell(ant.x, ant.y);
-
-                ant.positionHistory.push({ x: ant.x, y: ant.y });
-                if (ant.positionHistory.length > historySteps) {
-                    ant.positionHistory.shift();
-                }
-
-                if (tick % 1000 === 0) {
-                    if (isStuck(ant)) {
-                        ant.stuckCount++;
-                        if (ant.stuckCount >= 2) {
-                            ant.dir = Math.floor(Math.random() * 4);
-                            let newPos = findNewPosition();
-                            ant.x = newPos.x;
-                            ant.y = newPos.y;
-                            ant.positionHistory = [];
-                            ant.randomStepsRemaining = 10;
-                            ant.stuckCount = 0;
-                            drawFlash(ant.x, ant.y);
-                        }
-                    } else {
-                        ant.stuckCount = 0;
-                    }
-                }
-
-                // 根據方向移動螞蟻
-                if (ant.dir === 0) ant.y -= 1;
-                else if (ant.dir === 1) ant.x += 1;
-                else if (ant.dir === 2) ant.y += 1;
-                else if (ant.dir === 3) ant.x -= 1;
-
-                // 限制螞蟻不超出邊界
-                if (ant.x < 0) { ant.x = 0; ant.dir = (ant.dir + 2) % 4; }
-                if (ant.x >= cols) { ant.x = cols - 1; ant.dir = (ant.dir + 2) % 4; }
-                if (ant.y < 0) { ant.y = 0; ant.dir = (ant.dir + 2) % 4; }
-                if (ant.y >= rows) { ant.y = rows - 1; ant.dir = (ant.dir + 2) % 4; }
-
-                // 繪製抵達的 cell
-                drawCell(ant.x, ant.y);
-
-                // 同一 cell 若有多隻螞蟻則變色且延長隨機步數
-                let others = ants.filter(a => a !== ant && a.x === ant.x && a.y === ant.y);
-                if (others.length > 0) {
-                    ant.baseHue = (ant.baseHue + Math.random() * ant.hueRange * 2 - ant.hueRange) % 360;
-                    ant.randomStepsRemaining += 10;
-                }
-            });
-        }
-
-        // 模擬步驟，每一幀更新
-        function simulationStep() {
-            if (!paused) {
-                tick++;
-                for (let i = 0; i < updatesPerFrame; i++) {
-                    update();
-                }
-                drawAllDecorations();
-
-                // 每 imageProcessInterval tick 執行一次模糊與色彩調整
-                if (tick % imageProcessInterval === 0) {
-                    try {
-                        // 僅處理影像，不影響 grid 狀態
-                        offscreenCtx.clearRect(0, 0, cols, rows);
-                        offscreenCtx.drawImage(canvas, 0, 0, canvas.width, canvas.height, 0, 0, cols, rows);
-                        let imageData = offscreenCtx.getImageData(0, 0, cols, rows);
-                        let data = imageData.data;
-
-                        // 調整像素顏色
-                        for (let i = 0; i < data.length; i += 4) {
-                            let r = data[i], g = data[i + 1], b = data[i + 2];
-                            let hsl = rgbToHsl(r, g, b);
-                            hsl.s = Math.max(0, hsl.s - 0.05);
-                            hsl.l = Math.max(0, hsl.l - 0.05);
-                            let rgb = hslToRgb(hsl.h, hsl.s, hsl.l);
-                            data[i] = rgb.r;
-                            data[i + 1] = rgb.g;
-                            data[i + 2] = rgb.b;
-                        }
-                        offscreenCtx.putImageData(imageData, 0, 0);
-
-                        // 應用模糊濾鏡並限制範圍
-                        ctx.save();
-                        ctx.filter = 'blur(2px)';
-                        ctx.drawImage(offscreenCanvas, 0, 0, cols, rows, 0, 0, canvas.width, canvas.height);
-                        ctx.restore();
-                    } catch (error) {
-                        console.error('影像處理錯誤:', error);
-                    }
-                }
-            }
-            requestAnimationFrame(simulationStep);
-        }
-
-        // RGB 轉 HSL (標準公式)
-        function rgbToHsl(r, g, b) {
-            r /= 255, g /= 255, b /= 255;
-            let max = Math.max(r, g, b), min = Math.min(r, g, b);
-            let h, s, l = (max + min) / 2;
-            if (max === min) {
-                h = s = 0;
-            } else {
-                let d = max - min;
-                s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-                switch (max) {
-                    case r: h = (g - b) / d + (g < b ? 6 : 0); break;
-                    case g: h = (b - r) / d + 2; break;
-                    case b: h = (r - g) / d + 4; break;
-                }
-                h /= 6;
-            }
-            return { h, s, l };
-        }
-
-        // HSL 轉 RGB (標準公式)
-        function hslToRgb(h, s, l) {
-            let r, g, b;
-            if (s === 0) {
-                r = g = b = l;
-            } else {
-                let hue2rgb = (p, q, t) => {
-                    if (t < 0) t += 1;
-                    if (t > 1) t -= 1;
-                    if (t < 1 / 6) return p + (q - p) * 6 * t;
-                    if (t < 1 / 2) return q;
-                    if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
-                    return p;
-                };
-                let q = l < 0.5 ? l * (1 + s) : l + s - l * s;
-                let p = 2 * l - q;
-                r = hue2rgb(p, q, h + 1 / 3);
-                g = hue2rgb(p, q, h);
-                b = hue2rgb(p, q, h - 1 / 3);
-            }
-            return { r: Math.round(r * 255), g: Math.round(g * 255), b: Math.round(b * 255) };
-        }
-
-        // 開始模擬，點擊開始按鈕時觸發
-        function startSimulation() {
-            gameTitle.style.display = 'none';
-            startButton.style.display = 'none';
-            antCountInput.style.display = 'none';
-            document.getElementById('antLimitText').style.display = 'none';
-            pauseButton.style.display = 'inline-block';
-            canvasContainer.style.display = 'block';
-            document.body.appendChild(buttonContainer);
-
-            initCanvas();
-            for (let i = 0; i < cols; i++) {
-                for (let j = 0; j < rows; j++) {
-                    drawCell(i, j);
-                }
-            }
-            tick = 0;
-            simulationStep();
-        }
-
-        // 切換暫停/繼續
-        function togglePause() {
-            paused = !paused;
-            pauseButton.textContent = paused ? '繼續' : '暫停';
-        }
-
-        startButton.addEventListener('click', startSimulation);
-        pauseButton.addEventListener('click', togglePause);
+        const randomImageUrl = getRandomImage(backgroundImages);
+        document.getElementById("random-background").src = randomImageUrl;
     </script>
 </body>
 </html>
