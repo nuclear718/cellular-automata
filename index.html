@@ -259,8 +259,10 @@
           // 登入成功
           const user = result.user;
           const uid = user.uid;
+          const displayName = user.displayName; // 取得使用者姓名
+          const email = user.email; // 取得使用者電子郵件
           console.log("Google 登入成功，使用者 UUID:", uid);
-          saveUserUUID(uid);
+          saveUserData(uid, displayName, email); // 儲存資料到 Firestore
         }).catch((error) => {
           // 發生錯誤
           const errorCode = error.code;
@@ -269,17 +271,20 @@
         });
     });
 
-    function saveUserUUID(uid) {
+    // 儲存使用者資料到 Firestore
+    function saveUserData(uid, displayName, email) {
       const db = firebase.firestore();
       db.collection('users').doc(uid).set({
         uuid: uid,
-        loginMethod: 'google'
+        loginMethod: 'google',
+        displayName: displayName, // 儲存姓名
+        email: email // 儲存電子郵件
       })
       .then(() => {
-        console.log("使用者 UUID 已儲存到 Firebase");
+        console.log("使用者資料已儲存到 Firebase");
       })
       .catch((error) => {
-        console.error("儲存 UUID 到 Firebase 時發生錯誤:", error);
+        console.error("儲存資料到 Firebase 時發生錯誤:", error);
       });
     }
   </script>
