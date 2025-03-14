@@ -235,22 +235,50 @@
         });
     });
 
-    // 儲存使用者資料到 Firestore
+    // 儲存使用者資料到 Firestore，並記錄額外資訊
     function saveUserData(uid, displayName, email) {
       const db = firebase.firestore();
-      db.collection('users').doc(uid).set({
-        uuid: uid,
-        loginMethod: 'google',
-        displayName: displayName, // 儲存姓名
-        email: email // 儲存電子郵件
-      })
-      .then(() => {
-        console.log("使用者資料已儲存到 Firebase");
-      })
-      .catch((error) => {
+      const userRef = db.collection('users').doc(uid);
+      const now = Date.now(); // 取得當前時間戳
+
+      userRef.get().then((doc) => {
+        if (doc.exists) {
+          // 使用者已存在，僅更新最後登入時間、登入次數等
+          userRef.update({
+            lastLoginAt: now,
+            loginCount: firebase.firestore.FieldValue.increment(1),
+            ipAddress: getIPAddress(),
+            deviceInfo: navigator.userAgent
+          });
+        } else {
+          // 新使用者，儲存完整資料
+          userRef.set({
+            uuid: uid,
+            loginMethod: 'google',
+            displayName: displayName,
+            email: email,
+            createdAt: now,
+            lastLoginAt: now,
+            loginCount: 1,
+            ipAddress: getIPAddress(),
+            deviceInfo: navigator.userAgent,
+            referrer: document.referrer || 'direct'
+          });
+        }
+      }).then(() => {
+        console.log("使用者資料已更新到 Firebase");
+      }).catch((error) => {
         console.error("儲存資料到 Firebase 時發生錯誤:", error);
       });
     }
+      // 簡單取得 IP 位址的方法 (需要後端支援更準確方式)
+    function getIPAddress() {
+      return fetch('https://api64.ipify.org?format=json')
+        .then(response => response.json())
+        .then(data => data.ip)
+        .catch(() => 'unknown');
+    }
+
   </script>
 </body>
 </html>
