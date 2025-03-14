@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>蘭頓螞蟻遊戲 - 首頁</title>
 
-  <!-- Google Fonts (可自行更換或移除) -->
+  <!-- Google Fonts -->
   <link
     href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap"
     rel="stylesheet"
@@ -20,55 +20,64 @@
     }
     body {
       font-family: "Montserrat", sans-serif;
-      background: #000; /* 預設黑底，避免載入前閃白 */
+      background: #000; /* 預設黑底 */
       color: #fff;
-      /* 不要 overflow: hidden; 因為我們現在只要上半部背景、下半部內容 */
+      overflow: hidden; /* 移除捲動條 */
     }
 
-    /* 上半部：只佔視窗高度的 50%，並顯示隨機背景 */
-    .top-half {
-      position: relative;
-      width: 100%;
-      height: 50vh;
-      overflow: hidden; /* 隱藏超出此容器的背景 */
-    }
-
-    /* 隨機背景：使用 background-image, cover, 並隨機調整 position */
+    /* 背景圖片容器 - 限制在上半部 */
     .background-canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
       width: 100%;
-      height: 100%;
+      height: 50vh; /* 只占螢幕高度一半 */
       background-size: cover;
       background-repeat: no-repeat;
-      background-position: center; /* JS 會再動態調整 */
+      background-position: center;
+      z-index: -3; /* 最底層 */
     }
 
-    /* 下半部：顯示文字與粒子特效 */
-    .bottom-half {
-      position: relative;
+    /* 下半部純色背景 - 提高文字可讀性 */
+    .bottom-background {
+      position: fixed;
+      top: 50vh;
+      left: 0;
       width: 100%;
       height: 50vh;
-      background: #000; /* 下半部保持純黑背景 */
+      background: #000; /* 純黑背景 */
+      z-index: -2;
+    }
+
+    /* 粒子特效容器 */
+    #particles-js {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100vh;
+      z-index: -1; /* 在背景之上，內容之下 */
+    }
+
+    /* 主要內容容器 - 置於下半部 */
+    .container {
+      position: absolute;
+      top: 50vh; /* 從螢幕一半開始 */
+      left: 0;
+      width: 100%;
+      height: 50vh; /* 占下半部 */
       display: flex;
       flex-direction: column;
       justify-content: center;
       align-items: center;
       text-align: center;
-      overflow: hidden;
-    }
-
-    /* 粒子特效容器：絕對定位在下半部，置於底層 */
-    #particles-js {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      z-index: -1;
+      padding: 0 20px;
+      z-index: 0; /* 在粒子特效之上 */
     }
 
     /* 標題文字 */
     h1 {
-      font-size: 2.5rem;
+      font-size: 3rem;
       margin-bottom: 1rem;
       text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.7);
     }
@@ -76,7 +85,7 @@
     /* 一般段落 */
     p {
       font-size: 1.2rem;
-      margin-bottom: 1.5rem;
+      margin-bottom: 2rem;
       text-shadow: 1px 1px 4px rgba(0, 0, 0, 0.7);
     }
 
@@ -97,7 +106,7 @@
       background-color: #ff8362;
     }
 
-    /* 響應式 - 小螢幕時調整字體大小 */
+    /* 響應式設計 */
     @media (max-width: 768px) {
       h1 {
         font-size: 2rem;
@@ -113,24 +122,25 @@
   </style>
 </head>
 <body>
-  <!-- 上半部：只顯示背景的 50% 高度 -->
-  <div class="top-half">
-    <div class="background-canvas" id="background"></div>
-  </div>
+  <!-- 背景圖片容器 -->
+  <div class="background-canvas" id="background"></div>
+  <!-- 下半部背景 -->
+  <div class="bottom-background"></div>
+  <!-- 粒子特效容器 -->
+  <div id="particles-js"></div>
 
-  <!-- 下半部：文字、按鈕、粒子特效 -->
-  <div class="bottom-half">
-    <div id="particles-js"></div>
+  <!-- 主要內容 -->
+  <div class="container">
     <h1>歡迎來到蘭頓螞蟻遊戲！</h1>
     <p>探索這個繽紛多彩的細胞自動機世界，體驗螞蟻的奇妙旅程。</p>
     <a href="./game.html" class="btn-start">開始遊戲</a>
     <p>載入遊戲可能需要一些時間，請耐心等候。</p>
   </div>
 
-  <!-- 引入 particles.js（如不需要可自行刪除） -->
+  <!-- 引入 particles.js -->
   <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
   <script>
-    /* 隨機背景檔案清單（依照實際路徑與檔名自行調整） */
+    /* 隨機背景檔案清單 */
     const backgroundImages = [
       "background/b1.png",
       "background/b2.png",
@@ -138,58 +148,36 @@
       "background/b4.png"
     ];
 
-    /* 隨機設定背景並只顯示該圖的一部分 */
+    /* 隨機設定背景 */
     function setRandomBackground() {
       const randomIndex = Math.floor(Math.random() * backgroundImages.length);
       const randomImage = backgroundImages[randomIndex];
       const backgroundElement = document.getElementById("background");
-
-      // 指定隨機背景圖
       backgroundElement.style.backgroundImage = `url(${randomImage})`;
 
-      // 補充：隨機決定 background-position 的垂直偏移
-      // 因為我們只顯示畫面上方的 50vh，若想看「圖片的上半或中間」，可讓 Y 在 0%~50% 之間
-      const randomY = Math.floor(Math.random() * 51); // 0~50
-      backgroundElement.style.backgroundPosition = `center ${randomY}%`;
+      /* 隨機截圖效果 */
+      const randomX = Math.floor(Math.random() * 100);
+      const randomY = Math.floor(Math.random() * 100);
+      backgroundElement.style.backgroundPosition = `${randomX}% ${randomY}%`;
     }
 
-    /* 初始化粒子特效，嘗試營造流星拖尾的感覺 */
+    /* 粒子特效設定 - 模擬流星效果 */
     function initParticles() {
       particlesJS("particles-js", {
         particles: {
-          number: {
-            value: 60,
-            density: {
-              enable: true,
-              value_area: 800
-            }
-          },
-          color: {
-            value: "#ffffff"
-          },
-          shape: {
-            type: "circle"
-          },
-          opacity: {
-            value: 0.6,
-            random: true
-          },
-          size: {
-            value: 3,
-            random: true
-          },
-          /* 關閉線條連線，避免干擾「流星」視覺 */
-          line_linked: {
-            enable: false
-          },
-          /* 類似流星的效果：直線往下移動，速度稍快 */
+          number: { value: 30, density: { enable: true, value_area: 800 } },
+          color: { value: ["#ff4d4d", "#00ffff", "#ffff00", "#ff00ff"] },
+          shape: { type: "circle" },
+          opacity: { value: 0.8, random: true },
+          size: { value: 3, random: true },
+          line_linked: { enable: false },
           move: {
             enable: true,
-            speed: 5,           // 可以再調整大一點，營造快速墜落感
-            direction: "bottom", // 自上而下，類似流星
-            random: false,
-            straight: true,     // 直線移動
-            out_mode: "out",    // 移出視窗後消失
+            speed: 15, /* 快速移動模擬流星 */
+            direction: "bottom-right", /* 斜向下移動 */
+            random: true,
+            straight: true, /* 直線移動 */
+            out_mode: "out",
             bounce: false
           }
         },
@@ -203,15 +191,33 @@
         },
         retina_detect: true
       });
+
+      /* 自定義流星尾巴效果 */
+      const canvas = document.getElementById("particles-js").getElementsByTagName("canvas")[0];
+      const ctx = canvas.getContext("2d");
+      const particlesArray = window.pJSDom[0].particles.array;
+
+      function drawTails() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height); /* 清除畫布避免重疊 */
+        particlesArray.forEach(particle => {
+          ctx.beginPath();
+          ctx.strokeStyle = particle.color;
+          ctx.lineWidth = particle.radius * 2;
+          ctx.moveTo(particle.x, particle.y);
+          /* 畫出拖尾效果 */
+          ctx.lineTo(particle.x - particle.vx * 10, particle.y - particle.vy * 10);
+          ctx.stroke();
+          ctx.closePath();
+        });
+        requestAnimationFrame(drawTails);
+      }
+      requestAnimationFrame(drawTails);
     }
 
     /* DOM 載入後執行 */
     document.addEventListener("DOMContentLoaded", () => {
-      // 1. 設定隨機背景
-      setRandomBackground();
-
-      // 2. 初始化粒子特效
-      initParticles();
+      setRandomBackground(); /* 設定隨機背景 */
+      initParticles(); /* 初始化粒子特效 */
     });
   </script>
 </body>
