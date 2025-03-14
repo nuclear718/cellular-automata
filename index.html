@@ -3,25 +3,30 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>歡迎來到遊戲網站</title>
+    <title>歡迎來到蘭頓螞蟻遊戲網站</title>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap" rel="stylesheet">
     <style>
         body {
             margin: 0;
             font-family: 'Montserrat', sans-serif;
             color: #fff;
-            overflow: hidden; /* 防止滾動條 */
+            overflow: hidden; /* 防止滾動條出現 */
         }
 
+        /* 背景圖片樣式 */
         .header-background {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100vh;
-            z-index: -1; /* 背景在後 */
+            background-size: cover;
+            background-position: center;
+            z-index: -1; /* 背景置於底層 */
+            transition: background-image 1s ease-in-out;
         }
 
+        /* 主內容區域 */
         .container {
             display: flex;
             flex-direction: column;
@@ -30,7 +35,7 @@
             height: 100vh;
             text-align: center;
             position: relative;
-            z-index: 1; /* 內容在前景 */
+            z-index: 1; /* 內容置於前景 */
         }
 
         h1 {
@@ -44,6 +49,7 @@
             margin: 10px 0;
         }
 
+        /* 開始遊戲按鈕 */
         .game-link {
             display: inline-block;
             padding: 15px 30px;
@@ -66,16 +72,27 @@
             position: absolute;
             width: 100%;
             height: 100%;
-            z-index: 0;
+            z-index: 0; /* 粒子層在背景之上，內容之下 */
+        }
+
+        /* 響應式設計 */
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2em;
+            }
+            p {
+                font-size: 1em;
+            }
+            .game-link {
+                padding: 10px 20px;
+                font-size: 1em;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="header-background">
-        <canvas id="langton-canvas"></canvas>
-        <div id="particles-js"></div>
-    </div>
-
+    <div class="header-background" id="background"></div>
+    <div id="particles-js"></div>
     <div class="container">
         <h1>歡迎來到蘭頓螞蟻遊戲網站！</h1>
         <p>探索這個迷人的細胞自動機世界，體驗螞蟻的奇妙旅程。</p>
@@ -83,8 +100,29 @@
         <p>（請注意：遊戲頁面可能需要一些時間載入）</p>
     </div>
 
+    <!-- 引入 particles.js 庫 -->
     <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
     <script>
+        // 隨機背景圖片功能
+        const backgroundImages = [
+            "../background/b1.png",
+            "../background/b2.png",
+            "../background/b3.png",
+            "../background/b4.png"
+        ];
+
+        function setRandomBackground() {
+            const randomIndex = Math.floor(Math.random() * backgroundImages.length);
+            const randomImage = backgroundImages[randomIndex];
+            const backgroundElement = document.getElementById("background");
+            backgroundElement.style.backgroundImage = `url(${randomImage})`;
+            
+            // 隨機設定背景位置，實現截圖效果
+            const randomX = Math.floor(Math.random() * 100);
+            const randomY = Math.floor(Math.random() * 100);
+            backgroundElement.style.backgroundPosition = `${randomX}% ${randomY}%`;
+        }
+
         // 粒子效果配置
         particlesJS('particles-js', {
             particles: {
@@ -103,54 +141,8 @@
             retina_detect: true
         });
 
-        // 蘭頓螞蟻 Canvas 動畫
-        const canvas = document.getElementById('langton-canvas');
-        const ctx = canvas.getContext('2d');
-        let width, height;
-        let grid, antX, antY, direction;
-
-        function init() {
-            width = window.innerWidth;
-            height = window.innerHeight;
-            canvas.width = width;
-            canvas.height = height;
-            grid = Array.from({ length: height }, () => Array(width).fill(0));
-            antX = Math.floor(width / 2);
-            antY = Math.floor(height / 2);
-            direction = 0; // 0: 上, 1: 右, 2: 下, 3: 左
-            draw();
-        }
-
-        function draw() {
-            ctx.clearRect(0, 0, width, height);
-            for (let y = 0; y < height; y++) {
-                for (let x = 0; x < width; x++) {
-                    if (grid[y][x] === 1) {
-                        ctx.fillStyle = '#1E90FF';
-                        ctx.fillRect(x, y, 1, 1);
-                    }
-                }
-            }
-            moveAnt();
-            requestAnimationFrame(draw);
-        }
-
-        function moveAnt() {
-            if (grid[antY][antX] === 0) {
-                direction = (direction + 1) % 4;
-                grid[antY][antX] = 1;
-            } else {
-                direction = (direction + 3) % 4;
-                grid[antY][antX] = 0;
-            }
-            if (direction === 0) antY = (antY - 1 + height) % height;
-            else if (direction === 1) antX = (antX + 1) % width;
-            else if (direction === 2) antY = (antY + 1) % height;
-            else if (direction === 3) antX = (antX - 1 + width) % width;
-        }
-
-        window.addEventListener('resize', init);
-        init();
+        // 頁面載入時設定隨機背景
+        setRandomBackground();
     </script>
 </body>
 </html>
