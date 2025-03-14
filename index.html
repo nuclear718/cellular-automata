@@ -189,32 +189,38 @@
       /* 自定義長尾巴效果 */
       const canvas = document.querySelector("#particles-js canvas");
       const ctx = canvas.getContext("2d");
-      const particlesArray = window.pJSDom[0].particles.array;
 
-      function drawLongTails() {
-        ctx.globalCompositeOperation = "destination-out";
-        ctx.fillStyle = "rgba(0, 0, 0, 0.1)";
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.globalCompositeOperation = "source-over";
+      // 修復：加入防錯檢查
+      if (window.pJSDom && window.pJSDom[0] && window.pJSDom[0].particles && window.pJSDom[0].particles.array) {
+        const particlesArray = window.pJSDom[0].particles.array;
 
-        particlesArray.forEach(particle => {
-          ctx.beginPath();
-          const gradient = ctx.createLinearGradient(
-            particle.x, particle.y,
-            particle.x - particle.vx * 15, particle.y - particle.vy * 15
-          );
-          gradient.addColorStop(0, particle.color);
-          gradient.addColorStop(1, "rgba(0, 0, 0, 0)");
-          ctx.strokeStyle = gradient;
-          ctx.lineWidth = particle.radius * 2;
-          ctx.moveTo(particle.x, particle.y);
-          ctx.lineTo(particle.x - particle.vx * 15, particle.y - particle.vy * 15);
-          ctx.stroke();
-          ctx.closePath();
-        });
+        function drawLongTails() {
+          ctx.globalCompositeOperation = "destination-out";
+          ctx.fillStyle = "rgba(0, 0, 0, 0.1)";
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          ctx.globalCompositeOperation = "source-over";
+
+          particlesArray.forEach(particle => {
+            ctx.beginPath();
+            const gradient = ctx.createLinearGradient(
+              particle.x, particle.y,
+              particle.x - particle.vx * 15, particle.y - particle.vy * 15
+            );
+            gradient.addColorStop(0, particle.color);
+            gradient.addColorStop(1, "rgba(0, 0, 0, 0)");
+            ctx.strokeStyle = gradient;
+            ctx.lineWidth = particle.radius * 2;
+            ctx.moveTo(particle.x, particle.y);
+            ctx.lineTo(particle.x - particle.vx * 15, particle.y - particle.vy * 15);
+            ctx.stroke();
+            ctx.closePath();
+          });
+          requestAnimationFrame(drawLongTails);
+        }
         requestAnimationFrame(drawLongTails);
+      } else {
+        console.error("particles.js 未正確初始化，請檢查庫是否正確載入");
       }
-      requestAnimationFrame(drawLongTails);
     }
 
     /* DOM 載入後執行 */
